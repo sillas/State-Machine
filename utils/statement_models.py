@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, Dict, List, Optional
 
 
 class Operator(Enum):
@@ -29,7 +29,7 @@ class Condition:
         condition = Condition("$.user.age", Operator.GT, 18)
     """
     
-    def __init__(self, left: str, operator: Union[Operator, str], right: Any):
+    def __init__(self, left: Operator | str, operator: Operator, right: Any):
         """
         Inicializa uma condição.
         
@@ -40,10 +40,10 @@ class Condition:
         """
         self.left = left
         
-        # Converter string para Operator se necessário
         if isinstance(operator, str):
             try:
                 self.operator = Operator(operator)
+                
             except ValueError:
                 raise ValueError(f"Operador inválido: {operator}")
         else:
@@ -90,7 +90,7 @@ class Condition:
                 # Mantém como string se a conversão falhar
                 pass
         
-        return cls(left, op, right)
+        return cls(left, Operator(op), right)
 
 
 class Statement:
@@ -107,9 +107,9 @@ class Statement:
     
     def __init__(
         self, 
-        conditions: Optional[List[Union[Condition, str]]] = None, 
+        conditions: Optional[List[Condition | str]] = None, 
         next_state: Optional[str] = None,
-        bool_op: Optional[Union[BooleanOperator, str]] = None
+        bool_op: Optional[BooleanOperator | str] = None
     ):
         """
         Inicializa um statement.
@@ -182,35 +182,42 @@ class StatementBuilder:
             .build()
         )
     """
-    
+
     def __init__(self):
         """Inicializa o construtor."""
         self.conditions = []
         self.next_state = None
         self.bool_op = None
     
-    def when(self, left: str, operator: Union[Operator, str], right: Any) -> 'StatementBuilder':
+    def when(self, left: str, operator: Operator, right: Any) -> 'StatementBuilder':
         """Adiciona uma condição ao statement."""
         if self.conditions is None:
             self.conditions = []
         self.conditions.append(Condition(left, operator, right))
         return self
     
-    def and_when(self, left: str, operator: Union[Operator, str], right: Any) -> 'StatementBuilder':
+    def and_when(self, left: str, operator: Operator, right: Any) -> 'StatementBuilder':
         """Adiciona uma condição com AND implícito."""
         return self.when(left, operator, right)
     
-    def or_when(self, left: str, operator: Union[Operator, str], right: Any) -> 'StatementBuilder':
+    def or_when(self, left: str, operator: Operator, right: Any) -> 'StatementBuilder':
         """
-        Define que o próximo statement deve ser combinado com OR.
-        Nota: Isso define o bool_op deste statement, não adiciona uma condição OR.
+        Adiciona uma condição e define o bool_op como OR para o próximo statement.
         """
+        if self.conditions is None:
+            self.conditions = []
+        self.conditions.append(Condition(left, operator, right))
         self.bool_op = BooleanOperator.OR
         return self
     
     def and_next(self) -> 'StatementBuilder':
         """Define que o próximo statement deve ser combinado com AND."""
         self.bool_op = BooleanOperator.AND
+        return self
+    
+    def or_next(self) -> 'StatementBuilder':
+        """Define que o próximo statement deve ser combinado com OR."""
+        self.bool_op = BooleanOperator.OR
         return self
     
     def then(self, next_state: str) -> 'StatementBuilder':
@@ -228,67 +235,3 @@ class StatementBuilder:
     def build(self) -> Statement:
         """Constrói e retorna o objeto Statement."""
         return Statement(self.conditions, self.next_state, self.bool_op)
-
-
-# Classes predefinidas para condições comuns
-class CommonStatements:
-    """Classe com statements comuns predefinidos."""
-    
-    @staticmethod
-    def adult_user(next_state: str) -> Statement:
-        """Statement para usuário adulto (idade > 18)."""
-        return (
-            StatementBuilder()
-            .when("$.user.age", Operator.GT, 18)
-            .then(next_state)
-            .build()
-        )
-    
-    @staticmethod
-    def admin_user(next_state: str) -> Statement:
-        """Statement para usuário admin."""
-        return (
-            StatementBuilder()
-            .when("$.user.role", Operator.EQ, "admin")
-            .then(next_state)
-            .build()
-        )
-    
-    @staticmethod
-    def premium_user(next_state: str) -> Statement:
-        """Statement para usuário premium (mais de 5 compras e valor total > 100)."""
-        return (
-            StatementBuilder()
-            .when("$.user.purchases", Operator.GT, 5)
-            .and_next()
-            .build()
-        )
-    
-    @staticmethod
-    def high_value_user(next_state: str) -> Statement:
-        """Statement para usuário de alto valor (gasto total > 100)."""
-        return (
-            StatementBuilder()
-            .when("$.user.totalSpent", Operator.GT, 100)
-            .then(next_state)
-            .build()
-        )
-    
-    @staticmethod
-    def inactive_user(next_state: str) -> Statement:
-        """Statement para usuário inativo (último login > 30 dias)."""
-        return (
-            StatementBuilder()
-            .when("$.user.lastLogin", Operator.GT, 30)
-            .then(next_state)
-            .build()
-        )
-    
-    @staticmethod
-    def default(next_state: str) -> Statement:
-        """Statement default."""
-        return (
-            StatementBuilder()
-            .default(next_state)
-            .build()
-        )

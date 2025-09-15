@@ -96,21 +96,3 @@ class StateMachine:
                 
                 step_lambda_definition = machine_tree[next_state]
 
-            """
-            states:
-            {
-                "lambda_1", {
-
-                },
-                "lambda_2", {},
-                "tool_if", {"$.c < 456 & $.u > 100", None, 4]},
-                "lambda_3", {},
-            }
-            """
-
-
-
-
-
-
-

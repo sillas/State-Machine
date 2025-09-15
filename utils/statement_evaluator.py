@@ -1,43 +1,24 @@
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
+
+from utils.statement_models import BooleanOperator, Operator, Statement
 from .jsonpath_query import jsonpath_query
-
-
-class Operator(Enum):
-    """Enum defining the supported comparison operators."""
-    GT = "gt"   # greater than
-    LT = "lt"   # less than
-    EQ = "eq"   # equal
-    NEQ = "neq" # not equal
-    GTE = "gte" # greater than or equal
-    LTE = "lte" # less than or equal
-    CONTAINS = "contains" # for strings/lists
-    STARTS_WITH = "starts_with" # for strings
-    ENDS_WITH = "ends_with" # for strings
-
-
-class BooleanOperator(Enum):
-    """Enum defining the supported boolean operators."""
-    AND = "AND"
-    OR = "OR"
-
 
 class StatementEvaluator:
     """
     Class for evaluating conditional statements and determining the next state.
     
     The statements are defined in a structure where each statement has:
-    - sttm: List of condition expressions or None for default case
+    - sttm: list of condition expressions or None for default case
     - then: The next state to transition to if the condition is true
     - bool_ops: Boolean operator to chain with the next statement (AND, OR, None)
     """
     
-    def __init__(self, statements: Optional[List[Dict[str, Any]]]):
+    def __init__(self, statements: Optional[list[Statement]]):
         """
         Initialize the evaluator with a list of conditional statements.
         
         Args:
-            statements: List of statement dictionaries defining the conditions and next states
+            statements: list of statement dictionaries defining the conditions and next states
         
         Raises:
             ValueError: If the statements structure is invalid
@@ -45,15 +26,18 @@ class StatementEvaluator:
         if statements is None:
             raise ValueError("Statements cannot be None")
         
-        self._validate_statements(statements)
-        self.statements = statements
+        # Converter para o formato de dicionário que o StatementEvaluator espera
+        statement_dicts = [s.to_dict() for s in statements]
+
+        self._validate_statements(statement_dicts)
+        self.statements = statement_dicts
     
-    def _validate_statements(self, statements: List[Dict[str, Any]]) -> None:
+    def _validate_statements(self, statements: list[dict[str, Any]]) -> None:
         """
         Validate the statements structure for correctness.
         
         Args:
-            statements: List of statement dictionaries to validate
+            statements: list of statement dictionaries to validate
             
         Raises:
             ValueError: If the structure is invalid
@@ -85,7 +69,7 @@ class StatementEvaluator:
                 if bool_ops is not None and bool_ops not in [op.value for op in BooleanOperator]:
                     raise ValueError(f"Invalid bool_ops value in statement {i}: {bool_ops}")
     
-    def _get_value(self, value_expr: Any, data: Dict[str, Any]) -> Any:
+    def _get_value(self, value_expr: Any, data: dict[str, Any]) -> Any:
         """
         Extract a value from data based on expression or return literal value.
         
@@ -145,7 +129,7 @@ class StatementEvaluator:
         except TypeError:
             raise ValueError(f"Type mismatch for operation '{op}' between {type(left)} and {type(right)}")
     
-    def _parse_condition(self, condition_str: str) -> Dict[str, Any]:
+    def _parse_condition(self, condition_str: str) -> dict[str, Any]:
         """
         Parse a condition string in the format "$.a op1 $.b" into components.
         
@@ -153,7 +137,7 @@ class StatementEvaluator:
             condition_str: The condition string to parse
             
         Returns:
-            Dictionary with left, op, and right components
+            dictionary with left, op, and right components
         """
         parts = condition_str.split()
         if len(parts) != 3:
@@ -189,7 +173,7 @@ class StatementEvaluator:
             "right": right
         }
     
-    def _evaluate_condition(self, statement: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    def _evaluate_condition(self, statement: dict[str, Any], data: dict[str, Any]) -> bool:
         """
         Evaluate a condition statement against the provided data.
         
@@ -216,7 +200,7 @@ class StatementEvaluator:
         # Combine results based on AND operation (default)
         return all(results)
     
-    def evaluate(self, data: Dict[str, Any]) -> Optional[str]:
+    def evaluate(self, data: dict[str, Any]) -> Optional[str]:
         """
         Evaluate the statements against the provided data and return the next state.
         

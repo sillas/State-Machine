@@ -4,8 +4,9 @@ import os
 # Adiciona o diretório raiz ao path para importar o módulo utils
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from tests.common_statements import CommonStatements
 from utils.statement_evaluator import StatementEvaluator
-from utils.statement_models import Statement, StatementBuilder, Operator, BooleanOperator, CommonStatements
+from utils.statement_models import StatementBuilder, Operator
 
 def test_statement_models():
     # Criando statements usando as classes
@@ -36,11 +37,8 @@ def test_statement_models():
         CommonStatements.default("default_state")
     ]
     
-    # Converter para o formato de dicionário que o StatementEvaluator espera
-    statement_dicts = [s.to_dict() for s in statements]
-    
     # Criar o avaliador
-    evaluator = StatementEvaluator(statement_dicts)
+    evaluator = StatementEvaluator(statements)
     
     # Teste 1: Usuário adulto verificado
     data1 = {
