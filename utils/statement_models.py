@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class Operator(Enum):
@@ -107,7 +107,7 @@ class Statement:
     
     def __init__(
         self, 
-        conditions: Optional[List[Condition | str]] = None, 
+        conditions: Optional[list[Condition | str]] = None, 
         next_state: Optional[str] = None,
         bool_op: Optional[BooleanOperator | str] = None
     ):
@@ -115,7 +115,7 @@ class Statement:
         Inicializa um statement.
         
         Args:
-            conditions: Lista de condições ou None para caso default
+            conditions: lista de condições ou None para caso default
             next_state: Próximo estado se as condições forem verdadeiras
             bool_op: Operador booleano para encadear com o próximo statement
         """
@@ -142,7 +142,7 @@ class Statement:
         else:
             self.bool_op = bool_op
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Converte o statement para formato dicionário."""
         result = {
             "sttm": None if self.conditions is None else [c.to_string() for c in self.conditions],
@@ -152,7 +152,7 @@ class Statement:
         return result
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Statement':
+    def from_dict(cls, data: dict[str, Any]) -> 'Statement':
         """
         Cria um statement a partir de um dicionário.
         
