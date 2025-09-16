@@ -31,47 +31,38 @@ This project provides a state machine framework that allows you to define, execu
 A state machine consists of a collection of lambda functions and a machine definition that specifies how these functions are connected:
 
 ```python
-from machine_definition.machine import StateMachine, Lambda, LambdaTypes
+from machine_definition.machine import StateMachine
+from utils.constants import Lambda, IF
+from utils.statement_models import StatementBuilder, DefaultStatements, Operator
 
 # Define your lambda states
-machine_tree = {
-    "init": Lambda(
+machine_tree = [
+    Lambda(
         name="request",
-        type="request",
         next_state="process_data"
     ),
-    "process_data": Lambda(
+    Lambda(
         name="process_data",
-        type="process",
         next_state="decision"
     ),
-    "decision": Lambda(
+    IF(
         name="decision",
-        type=LambdaTypes.IF.value,
         statements=[
-            {
-                "sttm": ["$.result.confidence gt 0.8"],
-                "then": "high_confidence",
-                "bool_ops": None
-            },
-            {
-                "sttm": None,  # Default case
-                "then": "low_confidence",
-                "bool_ops": None
-            }
+            StatementBuilder()
+                .when("$.result.confidence", Operator.GT, 0.8)
+                .then("high_confidence"),
+            DefaultStatements.next_state("low_confidence")
         ]
     ),
-    "high_confidence": Lambda(
-        name="high_confidence_handler",
-        type="process",
-        next_state=LambdaTypes.END.value
+    Lambda(
+        name="high_confidence",
+        next_state=None
     ),
-    "low_confidence": Lambda(
-        name="low_confidence_handler",
-        type="process",
-        next_state=LambdaTypes.END.value
+    Lambda(
+        name="low_confidence",
+        next_state=None
     )
-}
+]
 
 # Create the state machine
 state_machine = StateMachine(
@@ -81,15 +72,15 @@ state_machine = StateMachine(
 )
 
 # Execute the state machine with initial input
-result = state_machine.machine({"input": "initial data"})
+result = state_machine.run({"input": "initial data"})
 ```
 
 ### Creating Lambda Functions
 
-Each state in the machine corresponds to a lambda function that should be placed in the `lambdas/{machine_name}/{lambda_name}` directory with a `main.py` file containing a `lambda_handler` function:
+Each state in the machine corresponds to a lambda function that should be placed in the `lambdas/{lambda_name}` directory with a `main.py` file containing a `lambda_handler` function:
 
 ```python
-# lambdas/ai_workflow/request/main.py
+# lambdas/request/main.py
 
 def lambda_handler(event, context):
     # Process the input event
@@ -115,6 +106,63 @@ The project is organized into several key components:
 - **tests/**: Test cases and examples
 - **machines/**: Pre-defined machine configurations
 
+## Example: Out-of-Machine State Machine
+
+Below is an example of a complete state machine defined in `machines/out_of_machine.py`. This state machine demonstrates the use of lambdas, conditional branching, and state transitions:
+
+```python
+from machine_definition.machine import StateMachine
+from utils.constants import Lambda, IF
+from utils.statement_models import Operator, StatementBuilder, DefaultStatements
+
+def main():
+    if__in_or_out__statements = [
+        StatementBuilder()
+            .when("$.value", Operator.GT, 10)
+            .and_when("$.value", Operator.LT, 100)
+            .then("center_state")
+            .build(),
+        DefaultStatements.next_state("outer_state")
+    ]
+
+    machine_tree = [
+        Lambda("center_state", "in_or_out"), # Input First
+        IF("in_or_out", if__in_or_out__statements),
+        Lambda("outer_state", None), # Output!
+    ]
+
+    machine = StateMachine("out-of-machine", machine_tree)
+
+    event = {"value": 50}
+    machine.run(event)
+```
+
+### Explanation
+
+1. **State Definitions**:
+   - `center_state`: A lambda function that processes the input.
+   - `in_or_out`: A conditional state that evaluates the input value.
+   - `outer_state`: The final state that outputs the result.
+
+2. **Conditional Logic**:
+   - If the value is between 10 and 100, the machine transitions to `center_state`.
+   - Otherwise, it transitions to `outer_state`.
+
+3. **Execution**:
+   - The machine is executed with an input event `{"value": 50}`.
+   - Based on the input, the machine evaluates the conditions and transitions accordingly.
+
+This example showcases the flexibility and power of the state machine framework for orchestrating workflows.
+
+### Clarification
+
+In the example above:
+
+- `statements`: Defined as a list of conditions that determine the state transitions.
+- `machine_tree`: Defined as a list representing the sequence of states in the state machine.
+
+This structure allows for flexibility in defining complex workflows with multiple states and transitions.
+
 ## Future Enhancements
 
 - Parallel execution of states
@@ -125,4 +173,4 @@ The project is organized into several key components:
 
 ## License
 
-[Specify your license here]
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
