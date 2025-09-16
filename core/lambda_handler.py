@@ -18,12 +18,15 @@ class Lambda:
     next_state: str | None
     statements: Optional[list]
     _handler = None
+    timeout = 60  # seconds
 
-    def __init__(self, name: str, next_state: str | None, type: LambdaTypes = LambdaTypes.LAMBDA, statements: Optional[list] = None) -> None:
+    def __init__(self, name: str, next_state: str | None, type: LambdaTypes = LambdaTypes.LAMBDA, statements: Optional[list] = None, timeout: Optional[int] = None) -> None:
         self.name = name
         self.type = type.value
         self.next_state = next_state
         self.statements = statements
+        if timeout is not None:
+            self.timeout = timeout
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
 
@@ -58,7 +61,7 @@ class IF(Lambda):
 
     def __init__(self, name: str, statements: list) -> None:
         self.evaluator = StatementEvaluator(statements)
-        super().__init__(name, None, LambdaTypes.LAMBDA)
+        super().__init__(name, None, LambdaTypes.LAMBDA, timeout=1)
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
         context["timestamp"] = time()
