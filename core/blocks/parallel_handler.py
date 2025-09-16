@@ -2,11 +2,11 @@ from typing import Any, Optional
 import logging
 import concurrent.futures
 
-from core.blocks.lambda_handler import Lambda, LambdaTypes
+from core.state_base import State, StateType
 from core.state_machine import StateMachine
 
 
-class ParallelHandler(Lambda):
+class ParallelHandler(State):
     """
     ParallelHandler executes multiple StateMachine workflows in parallel, managing their timeouts and aggregating results.
 
@@ -27,8 +27,11 @@ class ParallelHandler(Lambda):
     """
 
     def __init__(self, name: str, workflows: list[StateMachine], next_state: Optional[str], timeout: Optional[int] = 60):
+
+        self.name = name
         self.workflows = workflows
         self.next_state = next_state
+        self.type = StateType.PARALLEL.value
 
         state_machine_timeout_sum = 0
         for w in workflows:
@@ -45,8 +48,7 @@ class ParallelHandler(Lambda):
                     f"Sum of all workflows timeouts ({state_machine_timeout_sum}s) exceeds parallel handler timeout ({_timeout}s). Changing machine timeout to {state_machine_timeout_sum + 1}s."
                 )
                 _timeout = state_machine_timeout_sum + 1
-
-        super().__init__(name, None, LambdaTypes.PARALLEL, timeout=_timeout)
+        self.timeout = _timeout
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
 

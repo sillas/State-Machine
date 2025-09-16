@@ -1,19 +1,13 @@
 from typing import Any, Optional
 from time import time
-from enum import Enum
 from pathlib import Path
 import importlib.util
 
+from core.state_base import State, StateType
 from core.statement_evaluator import StatementEvaluator
 
 
-class LambdaTypes(Enum):
-    IF = "if_statement"
-    LAMBDA = "lambda"
-    PARALLEL = "parallel"
-
-
-class Lambda:
+class Lambda(State):
     """
     Represents a Lambda function handler that dynamically loads and executes a Python module as a Lambda.
 
@@ -28,7 +22,7 @@ class Lambda:
     Args:
         name (str): The name of the Lambda function.
         next_state (str | None): The next state to transition to after execution.
-        type (LambdaTypes, optional): The type of the Lambda function (default: LambdaTypes.LAMBDA).
+        type (StateType, optional): The type of the Lambda function (default: StateType.LAMBDA).
         statements (Optional[list], optional): Optional list of statements or configuration.
         timeout (Optional[int], optional): Timeout for Lambda execution in seconds.
 
@@ -40,14 +34,11 @@ class Lambda:
             Raises ModuleNotFoundError if the Lambda module is not found.
             Raises ImportError if the module cannot be loaded.
     """
-    name: str
-    type: str
-    next_state: str | None
+
     statements: Optional[list]
     _handler = None
-    timeout = 60  # seconds
 
-    def __init__(self, name: str, next_state: str | None, type: LambdaTypes = LambdaTypes.LAMBDA, statements: Optional[list] = None, timeout: Optional[int] = None) -> None:
+    def __init__(self, name: str, next_state: str | None, type: StateType = StateType.LAMBDA, statements: Optional[list] = None, timeout: Optional[int] = None) -> None:
         self.name = name
         self.type = type.value
         self.next_state = next_state
@@ -84,7 +75,7 @@ class Lambda:
         return handler(event, context)
 
 
-class IF(Lambda):
+class IF(State):
     """
     IF is a subclass of Lambda that evaluates a list of statements to determine the next state.
 
@@ -103,8 +94,12 @@ class IF(Lambda):
     """
 
     def __init__(self, name: str, statements: list) -> None:
+        self.name = name
+        self.type = StateType.LAMBDA.value
+        self.next_state = None
+        self.timeout = 1
+
         self.evaluator = StatementEvaluator(statements)
-        super().__init__(name, None, LambdaTypes.LAMBDA, timeout=1)
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
         context["timestamp"] = time()

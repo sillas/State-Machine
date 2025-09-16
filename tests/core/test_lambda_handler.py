@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from core.blocks.lambda_handler import Lambda, IF, LambdaTypes
+from core.blocks.lambda_handler import Lambda, IF
+from core.state_base import StateType
 from core.statement_models import StatementBuilder, Operator
 
 
@@ -14,7 +15,7 @@ class TestLambda(unittest.TestCase):
         self.lambda_instance = Lambda(
             name="test_lambda",
             next_state="next_state",
-            type=LambdaTypes.LAMBDA,
+            type=StateType.LAMBDA,
             timeout=10
         )
 
@@ -32,7 +33,7 @@ class TestLambda(unittest.TestCase):
         lambda_if = Lambda(
             name="if_lambda",
             next_state="next_state",
-            type=LambdaTypes.IF,
+            type=StateType.IF,
             statements=[]
         )
         self.assertEqual(lambda_if.type, "if_statement")
