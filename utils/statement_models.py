@@ -235,3 +235,14 @@ class StatementBuilder:
     def build(self) -> Statement:
         """Constrói e retorna o objeto Statement."""
         return Statement(self.conditions, self.next_state, self.bool_op)
+
+class DefaultStatements:
+    
+    @staticmethod
+    def next_state(next_state: str) -> Statement:
+        """Statement default."""
+        return (
+            StatementBuilder()
+            .default(next_state)
+            .build()
+        )
