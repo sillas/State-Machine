@@ -1,2 +1,21 @@
-.venv
-__pycache__
+# Virtual environment managed by uv
+.venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE specific files (e.g., VS Code)
+# .vscode/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Test / coverage reports
+htmlcov/
+.coverage
+.hypothesis/
+.pytest_cache/
