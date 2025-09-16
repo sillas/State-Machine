@@ -25,6 +25,9 @@ This project provides a state machine framework that allows you to define, execu
 - **Long-running AI Processes**: Manage stateful processes that require multiple steps
 
 ## Getting Started
+ install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+ 
+ Run: `$ uv run main.py`
 
 ### Defining a State Machine
 
