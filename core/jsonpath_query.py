@@ -1,6 +1,7 @@
 from typing import Any
 from jsonpath_ng import parse
 
+
 def jsonpath_query(obj: Any, expr: str) -> Any:
     """
     Recebe um objeto JSON (Python dict/list) e uma expressão JSONPath,
@@ -13,8 +14,8 @@ def jsonpath_query(obj: Any, expr: str) -> Any:
 
     matches = jsonpath_expr.find(obj)
     result = [match.value for match in matches]
-    
-    if(len(result) == 1):
+
+    if (len(result) == 1):
         return result[0]
-    
+
     return result
