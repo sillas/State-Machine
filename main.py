@@ -1,7 +1,7 @@
 from logging_config import setup_logging
 from machines.out_of_machine import main
 
-# .venv/bin/python main.py
+# uv run main.py
 
 setup_logging()
 
