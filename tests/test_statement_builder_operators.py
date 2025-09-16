@@ -5,7 +5,7 @@ import unittest
 # Adiciona o diretório raiz ao path para importar o módulo utils
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utils.statement_models import StatementBuilder, Operator, BooleanOperator
+from core.statement_models import StatementBuilder, Operator, BooleanOperator
 
 class TestStatementBuilderOperators(unittest.TestCase):
     """Testes específicos para os operadores and_when e or_when na classe StatementBuilder."""

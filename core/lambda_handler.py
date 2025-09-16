@@ -1,10 +1,10 @@
+from typing import Any, Optional
 from time import time
 from enum import Enum
-import importlib.util
 from pathlib import Path
-from typing import Any, Optional
+import importlib.util
 
-from utils.statement_evaluator import StatementEvaluator
+from core.statement_evaluator import StatementEvaluator
 
 class LambdaTypes(Enum):
     IF = "if_statement"

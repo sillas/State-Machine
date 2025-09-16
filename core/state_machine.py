@@ -1,11 +1,9 @@
 from typing import Any
 import time as t
-import uuid
 import logging
-from utils.constants import Lambda
+import uuid
+from core.lambda_handler import Lambda
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class StateMachine:
     def __init__(self, machine_name: str, machine_tree: list[Lambda], timeout: int = 30):
@@ -24,7 +22,7 @@ class StateMachine:
         self.machine_tree = {}
         for l in machine_tree:
             self.machine_tree[l.name] = l
-    
+
     def run(self, entry_point_event: Any) -> Any:
         start_time = t.time()
         execution_id = str(uuid.uuid4())  # Unique ID for this execution
@@ -55,7 +53,6 @@ class StateMachine:
                 )
                 raise Exception(f"State {next_state} does not exist!")
 
-            step_start_time = t.time()
             logging.info(
                 {
                     **context,
@@ -65,6 +62,7 @@ class StateMachine:
             )
 
             try:
+                step_start_time = t.time()
                 event = step_lambda.handler(event, context)  # Act
                 next_state = step_lambda.next_state
                 step_duration = t.time() - step_start_time

@@ -1,0 +1,23 @@
+{
+    "explorer.excludeGitIgnore": true,
+    "editor.trimAutoWhitespace": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "always",
+        "source.fixAll": "never"
+    },
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8",
+        "editor.formatOnSave": true
+    },
+    "python.languageServer": "Pylance",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    "python.testing.pytestArgs": [
+        "tests",
+        "-m",
+        "not slow"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+}

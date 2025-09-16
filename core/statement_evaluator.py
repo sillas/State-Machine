@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
-from utils.statement_models import BooleanOperator, Operator, Statement
-from .jsonpath_query import jsonpath_query
+from core.statement_models import BooleanOperator, Operator, Statement
+from core.jsonpath_query import jsonpath_query
 
 class StatementEvaluator:
     """
@@ -108,24 +108,24 @@ class StatementEvaluator:
         try:
             if op == Operator.GT.value:
                 return left > right
-            elif op == Operator.LT.value:
+            if op == Operator.LT.value:
                 return left < right
-            elif op == Operator.EQ.value:
+            if op == Operator.EQ.value:
                 return left == right
-            elif op == Operator.NEQ.value:
+            if op == Operator.NEQ.value:
                 return left != right
-            elif op == Operator.GTE.value:
+            if op == Operator.GTE.value:
                 return left >= right
-            elif op == Operator.LTE.value:
+            if op == Operator.LTE.value:
                 return left <= right
-            elif op == Operator.CONTAINS.value:
+            if op == Operator.CONTAINS.value:
                 return right in left
-            elif op == Operator.STARTS_WITH.value:
+            if op == Operator.STARTS_WITH.value:
                 return left.startswith(right) if isinstance(left, str) else False
-            elif op == Operator.ENDS_WITH.value:
+            if op == Operator.ENDS_WITH.value:
                 return left.endswith(right) if isinstance(left, str) else False
-            else:
-                raise ValueError(f"Unsupported operator: {op}")
+            
+            raise ValueError(f"Unsupported operator: {op}")
         except TypeError:
             raise ValueError(f"Type mismatch for operation '{op}' between {type(left)} and {type(right)}")
     

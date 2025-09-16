@@ -5,8 +5,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tests.common_statements import CommonStatements
-from utils.statement_evaluator import StatementEvaluator
-from utils.statement_models import StatementBuilder, Operator
+from core.statement_evaluator import StatementEvaluator
+from core.statement_models import StatementBuilder, Operator
 
 def test_statement_evaluator():
     

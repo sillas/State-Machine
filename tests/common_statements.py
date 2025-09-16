@@ -1,5 +1,5 @@
 # Classes predefinidas para condições comuns
-from utils.statement_models import Operator, Statement, StatementBuilder
+from core.statement_models import Operator, Statement, StatementBuilder
 
 
 class CommonStatements:

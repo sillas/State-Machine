@@ -1,9 +1,10 @@
 
-from machine_definition.machine import StateMachine
-from utils.constants import Lambda, IF
-from utils.statement_models import Operator, StatementBuilder, DefaultStatements
+from core.state_machine import StateMachine
+from core.lambda_handler import Lambda, IF
+from core.statement_models import Operator, StatementBuilder, DefaultStatements
 
 def main():
+
     if__in_or_out__statements = [
         StatementBuilder()
             .when("$.value", Operator.GT, 10)
