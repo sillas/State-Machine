@@ -53,11 +53,11 @@ class StateMachine:
         else:
             self.timeout = timeout
 
-        if states_timeout_sum > self.timeout:
-            logging.warning(
-                f"Sum of all states timeouts ({states_timeout_sum}s) exceeds machine timeout ({self.timeout}s). Changing machine timeout to {states_timeout_sum + 1}s."
-            )
-            self.timeout = states_timeout_sum + 1
+            if states_timeout_sum > self.timeout:
+                logging.warning(
+                    f"Sum of all states timeouts ({states_timeout_sum}s) exceeds machine timeout ({self.timeout}s). Changing machine timeout to {states_timeout_sum + 1}s."
+                )
+                self.timeout = states_timeout_sum + 1
 
     def run(self, entry_point_event: Any) -> Any:
         start_time = t.time()
