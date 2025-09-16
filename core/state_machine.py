@@ -2,6 +2,7 @@ from typing import Any
 import time as t
 import logging
 import uuid
+from core.exceptions import StateMachineExecutionError, StateNotFoundError
 from core.lambda_handler import Lambda
 
 
@@ -40,18 +41,19 @@ class StateMachine:
 
         step_lambda: Lambda | None = self.head_lambda
 
-        while 1:
+        while True:
             if t.time() - start_time > timeout:
                 logging.error(
                     f"Execution {execution_id} timed out after {timeout} seconds. Returning None."
                 )
-                raise Exception("Timeout atingido! Retornando None")
+                raise TimeoutError(
+                    f"Execution {execution_id} timed out after {timeout} seconds.")
 
             if not step_lambda:
                 logging.error(
                     f"Execution {execution_id} encountered an invalid state: {next_state}."
                 )
-                raise Exception(f"State {next_state} does not exist!")
+                raise StateNotFoundError(f"State {next_state} does not exist!")
 
             logging.info(
                 {
@@ -99,4 +101,5 @@ class StateMachine:
                         "message": f"Error occurred in state {next_state}"
                     }
                 )
-                raise
+                raise StateMachineExecutionError(
+                    f"Error in state {next_state}: {str(e)}") from e
