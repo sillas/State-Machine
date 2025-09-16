@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from core.lambda_handler import Lambda, IF, LambdaTypes
+from core.blocks.lambda_handler import Lambda, IF, LambdaTypes
 from core.statement_models import StatementBuilder, Operator
 
 

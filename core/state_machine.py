@@ -5,7 +5,7 @@ import uuid
 import concurrent.futures
 
 from core.exceptions import StateMachineExecutionError, StateNotFoundError
-from core.lambda_handler import Lambda
+from core.blocks.lambda_handler import Lambda
 
 
 class StateMachine:

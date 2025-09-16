@@ -1,6 +1,6 @@
 
 from core.state_machine import StateMachine
-from core.lambda_handler import Lambda, IF
+from core.blocks.lambda_handler import Lambda, IF
 from core.statement_models import Operator, StatementBuilder, DefaultStatements
 
 
