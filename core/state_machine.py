@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 import time as t
 import logging
 import uuid
@@ -31,7 +31,7 @@ class StateMachine:
             Returns the final output when the workflow completes successfully.
     """
 
-    def __init__(self, machine_name: str, machine_tree: list[Lambda], timeout: Optional[int] = None):
+    def __init__(self, machine_name: str, machine_tree: Sequence[Lambda], timeout: Optional[int] = None):
 
         self.namespace = uuid.NAMESPACE_URL
         self.machine_name = machine_name
@@ -140,7 +140,8 @@ class StateMachine:
                         {
                             "execution_id": execution_id,
                             "message": "Execution completed successfully.",
-                            "final_output": event
+                            "final_output": event,
+                            "total_duration": t.time() - start_time
                         }
                     )
                     return event

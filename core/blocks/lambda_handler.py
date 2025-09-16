@@ -10,6 +10,7 @@ from core.statement_evaluator import StatementEvaluator
 class LambdaTypes(Enum):
     IF = "if_statement"
     LAMBDA = "lambda"
+    PARALLEL = "parallel"
 
 
 class Lambda:
