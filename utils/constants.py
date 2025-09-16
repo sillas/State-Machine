@@ -26,7 +26,6 @@ class Lambda:
     def handler(self, event:Any, context:dict[str, Any]) -> Any:
         
         handler_cache = self._handler
-        context["step_name"] = self.name
         context["timestamp"] = time()
         
         if(handler_cache):
@@ -58,9 +57,6 @@ class IF(Lambda):
         super().__init__(name, None, LambdaTypes.LAMBDA)
     
     def handler(self, event:Any, context:dict[str, Any]) -> Any:
-        context["step_name"] = self.name
         context["timestamp"] = time()
-
-        print(f"IF {self.name}")
         self.next_state = self.evaluator.evaluate(event)
         return event
