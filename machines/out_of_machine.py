@@ -4,7 +4,7 @@ from utils.constants import Lambda, IF
 from utils.statement_models import Operator, StatementBuilder, DefaultStatements
 
 def main():
-    if_statements = [
+    if__in_or_out__statements = [
         StatementBuilder()
             .when("$.value", Operator.GT, 10)
             .and_when("$.value", Operator.LT, 100)
@@ -15,7 +15,7 @@ def main():
 
     machine_tree = [
         Lambda("center_state", "in_or_out"), # Input First
-        IF("in_or_out", if_statements),
+        IF("in_or_out", if__in_or_out__statements),
         Lambda("outer_state", None), # Output!
     ]
 
