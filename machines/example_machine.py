@@ -21,7 +21,7 @@ def main():
         Lambda("outer_state", None),  # Output!
     ]
 
-    machine = StateMachine("out-of-machine", machine_tree)
+    machine = StateMachine("example_machine", machine_tree)
 
     event = {"value": 50}
     machine.run(event)

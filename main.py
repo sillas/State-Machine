@@ -1,5 +1,5 @@
 from logging_config import setup_logging
-from machines.out_of_machine import main
+from machines.example_machine import main
 
 # uv run main.py
 
