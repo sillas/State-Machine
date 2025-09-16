@@ -3,75 +3,76 @@ from typing import Any, Optional
 
 
 class Operator(Enum):
-    """Operadores de comparação suportados."""
+    """Supported comparison operators."""
     GT = "gt"   # greater than
     LT = "lt"   # less than
     EQ = "eq"   # equal
-    NEQ = "neq" # not equal
-    GTE = "gte" # greater than or equal
-    LTE = "lte" # less than or equal
-    CONTAINS = "contains" # for strings/lists
-    STARTS_WITH = "starts_with" # for strings
-    ENDS_WITH = "ends_with" # for strings
+    NEQ = "neq"  # not equal
+    GTE = "gte"  # greater than or equal
+    LTE = "lte"  # less than or equal
+    CONTAINS = "contains"  # for strings/lists
+    STARTS_WITH = "starts_with"  # for strings
+    ENDS_WITH = "ends_with"  # for strings
 
 
 class BooleanOperator(Enum):
-    """Operadores booleanos suportados."""
+    """Supported boolean operators."""
     AND = "AND"
     OR = "OR"
 
 
 class Condition:
     """
-    Representa uma condição individual no formato "left op right".
-    
-    Exemplo:
+    Represents an individual condition in the format "left op right".
+
+    Example:
         condition = Condition("$.user.age", Operator.GT, 18)
     """
-    
+
     def __init__(self, left: Operator | str, operator: Operator, right: Any):
         """
-        Inicializa uma condição.
-        
+        Initializes a condition.
+
         Args:
-            left: Lado esquerdo da condição, geralmente um JSONPath
-            operator: Operador de comparação
-            right: Lado direito da condição, pode ser um valor literal ou JSONPath
+            left: Left side of the condition, usually a JSONPath
+            operator: Comparison operator
+            right: Right side of the condition, can be a literal value or JSONPath
         """
         self.left = left
-        
+
         if isinstance(operator, str):
             try:
                 self.operator = Operator(operator)
-                
+
             except ValueError:
                 raise ValueError(f"Operador inválido: {operator}")
         else:
             self.operator = operator
-            
+
         self.right = right
-    
+
     def to_string(self) -> str:
-        """Converte a condição para formato string."""
+        """Converts the condition to string format."""
         return f"{self.left} {self.operator.value} {self.right}"
-    
+
     @classmethod
     def from_string(cls, condition_str: str) -> 'Condition':
         """
-        Cria uma condição a partir de uma string.
-        
+        Creates a condition from a string.
+
         Args:
-            condition_str: String no formato "left op right"
-            
+            condition_str: String in the format "left op right"
+
         Returns:
-            Objeto Condition
+            Condition object
         """
         parts = condition_str.split()
         if len(parts) != 3:
-            raise ValueError(f"Formato de condição inválido: {condition_str}. Esperado 'left op right'")
-        
+            raise ValueError(
+                f"Formato de condição inválido: {condition_str}. Esperado 'left op right'")
+
         left, op, right = parts
-        
+
         # Tenta converter o right para número ou booleano se não for um path
         if not right.startswith("$."):
             try:
@@ -89,35 +90,35 @@ class Condition:
             except ValueError:
                 # Mantém como string se a conversão falhar
                 pass
-        
+
         return cls(left, Operator(op), right)
 
 
 class Statement:
     """
-    Representa um statement completo com condições e próximo estado.
-    
-    Exemplo:
+    Represents a complete statement with conditions and next state.
+
+    Example:
         statement = Statement(
             conditions=[Condition("$.user.age", Operator.GT, 18)],
             next_state="adult_state",
             bool_op=None
         )
     """
-    
+
     def __init__(
-        self, 
-        conditions: Optional[list[Condition | str]] = None, 
+        self,
+        conditions: Optional[list[Condition | str]] = None,
         next_state: Optional[str] = None,
         bool_op: Optional[BooleanOperator | str] = None
     ):
         """
-        Inicializa um statement.
-        
+        Initializes a statement.
+
         Args:
-            conditions: lista de condições ou None para caso default
-            next_state: Próximo estado se as condições forem verdadeiras
-            bool_op: Operador booleano para encadear com o próximo statement
+            conditions: list of conditions or None for default case
+            next_state: Next state if the conditions are true
+            bool_op: Boolean operator to chain with the next statement
         """
         # Processa as condições
         self.conditions = None
@@ -128,9 +129,9 @@ class Statement:
                     self.conditions.append(Condition.from_string(cond))
                 else:
                     self.conditions.append(cond)
-        
+
         self.next_state = next_state
-        
+
         # Processa o operador booleano
         if bool_op is None:
             self.bool_op = None
@@ -141,39 +142,39 @@ class Statement:
                 raise ValueError(f"Operador booleano inválido: {bool_op}")
         else:
             self.bool_op = bool_op
-    
+
     def to_dict(self) -> dict[str, Any]:
-        """Converte o statement para formato dicionário."""
+        """Converts the statement to dictionary format."""
         result = {
             "sttm": None if self.conditions is None else [c.to_string() for c in self.conditions],
             "then": self.next_state,
             "bool_ops": None if self.bool_op is None else self.bool_op.value
         }
         return result
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> 'Statement':
         """
-        Cria um statement a partir de um dicionário.
-        
+        Creates a statement from a dictionary.
+
         Args:
-            data: Dicionário com as chaves 'sttm', 'then' e 'bool_ops'
-            
+            data: Dictionary with the keys 'sttm', 'then', and 'bool_ops'
+
         Returns:
-            Objeto Statement
+            Statement object
         """
         conditions = data.get("sttm")
         next_state = data.get("then")
         bool_op = data.get("bool_ops")
-        
+
         return cls(conditions, next_state, bool_op)
 
 
 class StatementBuilder:
     """
-    Construtor fluente para criar statements de forma mais legível.
-    
-    Exemplo:
+    Fluent builder to create statements in a more readable way.
+
+    Example:
         statement = (
             StatementBuilder()
             .when("$.user.age", Operator.GT, 18)
@@ -184,63 +185,64 @@ class StatementBuilder:
     """
 
     def __init__(self):
-        """Inicializa o construtor."""
+        """Initializes the builder."""
         self.conditions = []
         self.next_state = None
         self.bool_op = None
-    
+
     def when(self, left: str, operator: Operator, right: Any) -> 'StatementBuilder':
-        """Adiciona uma condição ao statement."""
+        """Adds a condition to the statement."""
         if self.conditions is None:
             self.conditions = []
         self.conditions.append(Condition(left, operator, right))
         return self
-    
+
     def and_when(self, left: str, operator: Operator, right: Any) -> 'StatementBuilder':
-        """Adiciona uma condição com AND implícito."""
+        """Adds a condition with implicit AND."""
         return self.when(left, operator, right)
-    
+
     def or_when(self, left: str, operator: Operator, right: Any) -> 'StatementBuilder':
         """
-        Adiciona uma condição e define o bool_op como OR para o próximo statement.
+        Adds a condition and sets bool_op as OR for the next statement.
         """
         if self.conditions is None:
             self.conditions = []
         self.conditions.append(Condition(left, operator, right))
         self.bool_op = BooleanOperator.OR
         return self
-    
+
     def and_next(self) -> 'StatementBuilder':
-        """Define que o próximo statement deve ser combinado com AND."""
+        """Sets that the next statement should be combined with AND."""
         self.bool_op = BooleanOperator.AND
         return self
-    
+
     def or_next(self) -> 'StatementBuilder':
-        """Define que o próximo statement deve ser combinado com OR."""
+        """Sets that the next statement should be combined with OR."""
         self.bool_op = BooleanOperator.OR
         return self
-    
+
     def then(self, next_state: str) -> 'StatementBuilder':
-        """Define o próximo estado."""
+        """Sets the next state."""
         self.next_state = next_state
         return self
-    
+
     def default(self, next_state: str) -> 'StatementBuilder':
-        """Define um statement default."""
+        """Sets a default statement."""
         self.conditions = None
         self.next_state = next_state
         self.bool_op = None
         return self
-    
+
     def build(self) -> Statement:
-        """Constrói e retorna o objeto Statement."""
+        """Builds and returns the Statement object."""
         return Statement(self.conditions, self.next_state, self.bool_op)
 
+
 class DefaultStatements:
-    
+
     @staticmethod
     def next_state(next_state: str) -> Statement:
-        """Statement default."""
+        """Default statement."""
         return (
             StatementBuilder()
             .default(next_state)

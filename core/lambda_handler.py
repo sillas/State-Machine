@@ -13,6 +13,32 @@ class LambdaTypes(Enum):
 
 
 class Lambda:
+    """
+    Represents a Lambda function handler that dynamically loads and executes a Python module as a Lambda.
+
+    Attributes:
+        name (str): The name of the Lambda function.
+        type (str): The type of the Lambda function.
+        next_state (str | None): The next state to transition to after execution.
+        statements (Optional[list]): Optional list of statements or configuration.
+        _handler (callable | None): Cached handler function for the Lambda.
+        timeout (int): Timeout for Lambda execution in seconds (default: 60).
+
+    Args:
+        name (str): The name of the Lambda function.
+        next_state (str | None): The next state to transition to after execution.
+        type (LambdaTypes, optional): The type of the Lambda function (default: LambdaTypes.LAMBDA).
+        statements (Optional[list], optional): Optional list of statements or configuration.
+        timeout (Optional[int], optional): Timeout for Lambda execution in seconds.
+
+    Methods:
+        handler(event: Any, context: dict[str, Any]) -> Any:
+            Loads and executes the Lambda handler from the corresponding module file.
+            Caches the handler for subsequent invocations.
+            Updates the context with a timestamp.
+            Raises ModuleNotFoundError if the Lambda module is not found.
+            Raises ImportError if the module cannot be loaded.
+    """
     name: str
     type: str
     next_state: str | None
@@ -58,6 +84,22 @@ class Lambda:
 
 
 class IF(Lambda):
+    """
+    IF is a subclass of Lambda that evaluates a list of statements to determine the next state.
+
+    Attributes:
+        evaluator (StatementEvaluator): Evaluates the provided statements.
+        next_state: Stores the result of the evaluation.
+
+    Args:
+        name (str): The name of the Lambda function.
+        statements (list): A list of statements to be evaluated.
+
+    Methods:
+        handler(event, context):
+            Updates the context with the current timestamp, evaluates the event using the provided statements,
+            sets the next state, and returns the event.
+    """
 
     def __init__(self, name: str, statements: list) -> None:
         self.evaluator = StatementEvaluator(statements)
