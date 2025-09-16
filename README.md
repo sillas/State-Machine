@@ -53,7 +53,8 @@ machine_tree = [
         statements=[
             StatementBuilder()
                 .when("$.result.confidence", Operator.GT, 0.8)
-                .then("high_confidence"),
+                .then("high_confidence")
+                .build(),
             DefaultStatements.next_state("low_confidence")
         ]
     ),
