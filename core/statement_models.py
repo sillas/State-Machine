@@ -238,7 +238,17 @@ class StatementBuilder:
         return Statement(self.conditions, self.next_state, self.bool_op)
 
 
+# === Utility Classes === #
+
 class DefaultStatements:
+    """
+    A utility class providing default statement construction methods.
+
+    Methods
+    -------
+    next_state(next_state: str) -> Statement
+        Creates a default Statement object for transitioning to the specified next state.
+    """
 
     @staticmethod
     def next_state(next_state: str) -> Statement:
