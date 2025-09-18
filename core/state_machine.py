@@ -60,7 +60,7 @@ class StateMachine:
                 )
                 self.timeout = states_timeout_sum + 1
 
-    def run(self, entry_point_event: Any, super_context: Optional[dict[str, Any]] = {}) -> Any:
+    def run(self, entry_point_event: Any, super_context: Optional[dict[str, Any]] = None) -> Any:
         start_time = t.time()
         execution_id = str(uuid.uuid4())  # Unique ID for this execution
         timeout = self.timeout

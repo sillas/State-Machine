@@ -156,7 +156,7 @@ class TestParallelHandler(unittest.TestCase):
             with patch('concurrent.futures.as_completed') as mock_as_completed:
                 try:
                     self.parallel_handler.handler(event_data, context_data)
-                except:
+                except Exception:
                     pass
 
                 # Check that the timeout parameter was passed correctly
