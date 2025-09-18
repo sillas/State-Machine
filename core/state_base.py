@@ -6,6 +6,7 @@ class StateType(Enum):
     IF = "if_statement"
     LAMBDA = "lambda"
     PARALLEL = "parallel"
+    FIRE_AND_FORGET = "fire_and_forget"
 
 
 class State:
