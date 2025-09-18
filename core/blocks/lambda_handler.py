@@ -10,26 +10,22 @@ class Lambda(State):
     """
     Represents a Lambda function handler that dynamically loads and executes a Python module as a Lambda.
 
-    Attributes:
-        name (str): The name of the Lambda function.
-        type (str): The type of the Lambda function.
-        next_state (str | None): The next state to transition to after execution.
-        statements (Optional[list]): Optional list of statements or configuration.
-        _handler (callable | None): Cached handler function for the Lambda.
-        timeout (int): Timeout for Lambda execution in seconds (default: 60).
-
     Args:
         name (str): The name of the Lambda function.
         next_state (str | None): The next state to transition to after execution.
-        type (StateType, optional): The type of the Lambda function (default: StateType.LAMBDA).
-        statements (Optional[list], optional): Optional list of statements or configuration.
         timeout (Optional[int], optional): Timeout for Lambda execution in seconds.
+
+    Attributes:
+        _handler (callable | None): Cached handler function for the Lambda.
 
     Methods:
         handler(event: Any, context: dict[str, Any]) -> Any:
-            Loads and executes the Lambda handler from the corresponding module file.
-            Caches the handler for subsequent invocations.
+            Executes the Lambda handler.
             Updates the context with a timestamp.
+
+        _load_lambda() -> callable:
+            Loads the Lambda handler from the corresponding module file.
+            Caches the handler for subsequent invocations.
             Raises ModuleNotFoundError if the Lambda module is not found.
             Raises ImportError if the module cannot be loaded.
     """
@@ -62,17 +58,15 @@ class Lambda(State):
 
         Behavior:
             - If a custom handler (`self._handler`) is set, it delegates execution to it.
-            - Otherwise, it loads the default lambda handler and executes it.
+            - Otherwise, it loads the lambda handler and executes it.
         """
 
         context["timestamp"] = time()
 
-        if self._handler:
-            return self._handler(event, context)
+        if self._handler is None:
+            self._load_lambda()
 
-        handler = self._load_lambda()
-
-        return handler(event, context)
+        return self._handler(event, context)  # type: ignore
 
     def _load_lambda(self):
         """
@@ -82,9 +76,6 @@ class Lambda(State):
         and imports the module using importlib. If the module or its loader cannot be found,
         appropriate exceptions are raised. Once loaded, the method retrieves the `lambda_handler`
         function from the module and assigns it to the instance's `_handler` attribute.
-
-        Returns:
-            Callable: The loaded lambda handler function.
 
         Raises:
             ModuleNotFoundError: If the lambda module file does not exist.
@@ -108,4 +99,3 @@ class Lambda(State):
 
         handler = module.lambda_handler
         self._handler = handler
-        return handler
