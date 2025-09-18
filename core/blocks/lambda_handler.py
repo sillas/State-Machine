@@ -40,7 +40,7 @@ class Lambda(State):
             timeout=timeout
         )
 
-        self._load_lambda()  # pre-load the lambda
+        self._load_lambda()  # pre-load the lambda handler
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
         """
@@ -62,11 +62,12 @@ class Lambda(State):
         """
 
         context["timestamp"] = time()
+        _handler = self._handler
 
-        if self._handler is None:
-            self._load_lambda()
+        if _handler is None:
+            _handler = self._load_lambda()
 
-        return self._handler(event, context)  # type: ignore
+        return _handler(event, context)
 
     def _load_lambda(self):
         """
@@ -76,6 +77,9 @@ class Lambda(State):
         and imports the module using importlib. If the module or its loader cannot be found,
         appropriate exceptions are raised. Once loaded, the method retrieves the `lambda_handler`
         function from the module and assigns it to the instance's `_handler` attribute.
+
+        Returns:
+            Callable: The loaded lambda handler function.
 
         Raises:
             ModuleNotFoundError: If the lambda module file does not exist.
@@ -99,3 +103,4 @@ class Lambda(State):
 
         handler = module.lambda_handler
         self._handler = handler
+        return handler
