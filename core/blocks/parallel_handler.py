@@ -16,16 +16,16 @@ class ParallelHandler(State):
 
     Attributes:
         workflows (list[StateMachine]): The workflows to execute in parallel.
-        timeout (int): The effective timeout for the parallel execution.
 
     Methods:
         handler(event: Any, context: dict[str, Any]) -> Any:
             Runs all workflows in parallel, waits for completion or timeout, and returns a dictionary mapping workflow names to their results.
     """
+    _workflows: list[StateMachine]
 
     def __init__(self, name: str, next_state: Optional[str], workflows: list[StateMachine]):
 
-        self.workflows = workflows
+        self._workflows = workflows
 
         timeout: int = 0
         for w in workflows:
@@ -55,10 +55,10 @@ class ParallelHandler(State):
 
         results = {}
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.workflows)) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(self._workflows)) as executor:
             future_map = {
                 executor.submit(w.run, event, context): w.machine_name
-                for w in self.workflows
+                for w in self._workflows
             }
 
             for future in concurrent.futures.as_completed(future_map, timeout=self.timeout):
