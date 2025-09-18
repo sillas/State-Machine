@@ -11,10 +11,10 @@ from core.blocks.parallel_handler import ParallelHandler
 def example_parallel_machine():
 
     workflow1 = StateMachine("parallel_workflow1", [
-        Lambda("center_state", None, timeout=10)
+        Lambda("example/center_state", None, timeout=10)
     ])
     workflow2 = StateMachine("parallel_workflow2", [
-        Lambda("outer_state", None, timeout=20)
+        Lambda("example/outer_state", None, timeout=20)
     ])
 
     machine_tree = [
@@ -37,15 +37,15 @@ def example_machine():
         StatementBuilder()
         .when("$.value", Operator.GT, 10)
         .and_when("$.value", Operator.LT, 53)
-        .then("center_state")
+        .then("example/center_state")
         .build(),
-        DefaultStatements.next_state("outer_state")
+        DefaultStatements.next_state("example/outer_state")
     ]
 
     machine_tree = [
-        Lambda("center_state", "in_or_out"),  # Input First
+        Lambda("example/center_state", "in_or_out"),  # Input First
         IF("in_or_out", if__in_or_out__statements),
-        Lambda("outer_state", None),  # Output!
+        Lambda("example/outer_state", None),  # Output!
     ]
 
     machine = StateMachine("example_machine", machine_tree)

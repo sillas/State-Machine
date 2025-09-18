@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Potential Future Enhancements
+- **Map Parallel Block**: Apply the same single Lambda function to items in a collection in parallel mode;
+- **State Persistence**: Currently lacks state persistence for resuming workflows after failures;
+- **Visualization**: Built-in tools for visualizing the state machine structure;
+- **Monitoring**: Add observability features for long-running workflows;
+- **Documentation**: Add more comprehensive guides;
+
 ## [1.1.0-alpha] - 2025-09-18
 
 ### Added
