@@ -11,13 +11,11 @@ class ParallelHandler(State):
 
     Args:
         name (str): The name of the parallel handler.
-        workflows (list[StateMachine]): List of StateMachine instances to run in parallel.
         next_state (Optional[str]): The next state to transition to after execution.
-        timeout (Optional[int], optional): Maximum allowed time (in seconds) for all workflows to complete. Defaults to 60 seconds.
+        workflows (list[StateMachine]): List of StateMachine instances to run in parallel.
 
     Attributes:
         workflows (list[StateMachine]): The workflows to execute in parallel.
-        next_state (Optional[str]): The next state after execution.
         timeout (int): The effective timeout for the parallel execution.
 
     Methods:
