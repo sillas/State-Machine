@@ -1,5 +1,4 @@
 from typing import Any, Optional
-import logging
 import concurrent.futures
 
 from core.state_base import State, StateType
@@ -26,37 +25,41 @@ class ParallelHandler(State):
             Runs all workflows in parallel, waits for completion or timeout, and returns a dictionary mapping workflow names to their results.
     """
 
-    def __init__(self, name: str, workflows: list[StateMachine], next_state: Optional[str], timeout: Optional[int] = 60):
+    def __init__(self, name: str, next_state: Optional[str], workflows: list[StateMachine]):
 
-        self.name = name
         self.workflows = workflows
-        self.next_state = next_state
-        self.type = StateType.PARALLEL.value
 
-        state_machine_timeout_sum = 0
+        timeout: int = 0
         for w in workflows:
-            state_machine_timeout_sum += w.timeout
+            timeout += w.timeout
 
-        if timeout is None:
-            _timeout = state_machine_timeout_sum
-
-        else:
-            _timeout = timeout
-
-            if _timeout < state_machine_timeout_sum:
-                logging.warning(
-                    f"Sum of all workflows timeouts ({state_machine_timeout_sum}s) exceeds parallel handler timeout ({_timeout}s). Changing machine timeout to {state_machine_timeout_sum + 1}s."
-                )
-                _timeout = state_machine_timeout_sum + 1
-        self.timeout = _timeout
+        super().__init__(
+            name=name,
+            next_state=next_state,
+            type=StateType.PARALLEL,
+            timeout=timeout + 1
+        )
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
+        """
+        Executes multiple workflows in parallel using threads, passing the given event and context to each workflow's `run` method.
+
+        Args:
+            event (Any): The event data to be processed by each workflow.
+            context (dict[str, Any]): A dictionary containing contextual information for the workflows.
+
+        Returns:
+            dict[str, Any]: A dictionary mapping each workflow's machine name to its result. If a workflow raises an exception, the result will contain an "error" key with the exception message.
+
+        Raises:
+            concurrent.futures.TimeoutError: If the execution of all workflows does not complete within the specified timeout.
+        """
 
         results = {}
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.workflows)) as executor:
             future_map = {
-                executor.submit(w.run, event): w.machine_name
+                executor.submit(w.run, event, context): w.machine_name
                 for w in self.workflows
             }
 

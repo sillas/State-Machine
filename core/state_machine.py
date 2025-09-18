@@ -5,7 +5,7 @@ import uuid
 import concurrent.futures
 
 from core.exceptions import StateMachineExecutionError, StateNotFoundError
-from core.blocks.lambda_handler import Lambda
+from core.state_base import State
 
 
 class StateMachine:
@@ -31,7 +31,7 @@ class StateMachine:
             Returns the final output when the workflow completes successfully.
     """
 
-    def __init__(self, machine_name: str, machine_tree: Sequence[Lambda], timeout: Optional[int] = None):
+    def __init__(self, machine_name: str, machine_tree: Sequence[State], timeout: Optional[int] = None):
 
         self.namespace = uuid.NAMESPACE_URL
         self.machine_name = machine_name
@@ -50,6 +50,7 @@ class StateMachine:
 
         if timeout is None:
             self.timeout = states_timeout_sum
+
         else:
             self.timeout = timeout
 
@@ -59,13 +60,13 @@ class StateMachine:
                 )
                 self.timeout = states_timeout_sum + 1
 
-    def run(self, entry_point_event: Any) -> Any:
+    def run(self, entry_point_event: Any, super_context: Optional[dict[str, Any]] = {}) -> Any:
         start_time = t.time()
         execution_id = str(uuid.uuid4())  # Unique ID for this execution
         timeout = self.timeout
         machine_tree = self.machine_tree
         event = entry_point_event or None
-        step_lambda: Lambda | None = self.head_lambda
+        step_lambda: State | None = self.head_lambda
         next_state: str | None = step_lambda.name
         context = {
             "machine_name": self.machine_name,
@@ -74,6 +75,9 @@ class StateMachine:
             "state_name": next_state,
             "start_time": start_time,
         }
+
+        if super_context:
+            context.update({"super_context": super_context})
 
         while True:
             if t.time() - start_time > timeout:

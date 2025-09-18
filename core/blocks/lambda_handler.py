@@ -4,7 +4,6 @@ from pathlib import Path
 import importlib.util
 
 from core.state_base import State, StateType
-from core.statement_evaluator import StatementEvaluator
 
 
 class Lambda(State):
@@ -35,24 +34,62 @@ class Lambda(State):
             Raises ImportError if the module cannot be loaded.
     """
 
-    statements: Optional[list]
     _handler = None
 
-    def __init__(self, name: str, next_state: str | None, type: StateType = StateType.LAMBDA, statements: Optional[list] = None, timeout: Optional[int] = None) -> None:
-        self.name = name
-        self.type = type.value
-        self.next_state = next_state
-        self.statements = statements
-        if timeout is not None:
-            self.timeout = timeout
+    def __init__(self, name: str, next_state: str | None, timeout: Optional[int] = None) -> None:
+        super().__init__(
+            name=name,
+            next_state=next_state,
+            type=StateType.LAMBDA,
+            timeout=timeout
+        )
+
+        self._load_lambda()  # pre-load the lambda
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
+        """
+        Handles an incoming event and context for a Lambda-like function.
 
-        handler_cache = self._handler
+        Args:
+            event (Any): The event data passed to the handler.
+            context (dict[str, Any]): The context dictionary containing metadata about the invocation.
+
+        Returns:
+            Any: The result of the handler execution.
+
+        Side Effects:
+            Updates the 'timestamp' key in the context dictionary with the current time.
+
+        Behavior:
+            - If a custom handler (`self._handler`) is set, it delegates execution to it.
+            - Otherwise, it loads the default lambda handler and executes it.
+        """
+
         context["timestamp"] = time()
 
-        if (handler_cache):
-            return handler_cache(event, context)
+        if self._handler:
+            return self._handler(event, context)
+
+        handler = self._load_lambda()
+
+        return handler(event, context)
+
+    def _load_lambda(self):
+        """
+        Loads a lambda handler module dynamically based on the instance's name attribute.
+
+        This method constructs the path to the lambda's main.py file, checks for its existence,
+        and imports the module using importlib. If the module or its loader cannot be found,
+        appropriate exceptions are raised. Once loaded, the method retrieves the `lambda_handler`
+        function from the module and assigns it to the instance's `_handler` attribute.
+
+        Returns:
+            Callable: The loaded lambda handler function.
+
+        Raises:
+            ModuleNotFoundError: If the lambda module file does not exist.
+            ImportError: If the module cannot be loaded or its loader is unavailable.
+        """
 
         lambda_name = self.name
         lambda_path = Path(f"lambdas/{lambda_name}/main.py")
@@ -71,37 +108,4 @@ class Lambda(State):
 
         handler = module.lambda_handler
         self._handler = handler
-
-        return handler(event, context)
-
-
-class IF(State):
-    """
-    IF is a subclass of Lambda that evaluates a list of statements to determine the next state.
-
-    Attributes:
-        evaluator (StatementEvaluator): Evaluates the provided statements.
-        next_state: Stores the result of the evaluation.
-
-    Args:
-        name (str): The name of the Lambda function.
-        statements (list): A list of statements to be evaluated.
-
-    Methods:
-        handler(event, context):
-            Updates the context with the current timestamp, evaluates the event using the provided statements,
-            sets the next state, and returns the event.
-    """
-
-    def __init__(self, name: str, statements: list) -> None:
-        self.name = name
-        self.type = StateType.LAMBDA.value
-        self.next_state = None
-        self.timeout = 1
-
-        self.evaluator = StatementEvaluator(statements)
-
-    def handler(self, event: Any, context: dict[str, Any]) -> Any:
-        context["timestamp"] = time()
-        self.next_state = self.evaluator.evaluate(event)
-        return event
+        return handler

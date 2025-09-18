@@ -1,9 +1,11 @@
 import logging
 from time import sleep
-from core.blocks.parallel_handler import ParallelHandler
 from core.state_machine import StateMachine
-from core.blocks.lambda_handler import Lambda, IF
 from core.statement_models import Operator, StatementBuilder, DefaultStatements
+
+from core.blocks.if_handler import IF
+from core.blocks.lambda_handler import Lambda
+from core.blocks.parallel_handler import ParallelHandler
 
 
 def example_parallel_machine():
@@ -18,8 +20,9 @@ def example_parallel_machine():
     machine_tree = [
         ParallelHandler(
             name="Parallel_block",
-            workflows=[workflow1, workflow2],
-            next_state=None)
+            next_state=None,
+            workflows=[workflow1, workflow2]
+        )
     ]
 
     machine = StateMachine("example_machine", machine_tree)
