@@ -10,26 +10,52 @@ from core.state_machine import StateMachine
 class TestStateMachine(unittest.TestCase):
     """Test cases for the StateMachine class."""
 
+    def setup_lambda_handlers(self, name, next_state, timeout, handle_value):
+        """Set up test fixtures before each test method."""
+
+        # Patch _load_lambda para não tentar carregar o módulo real durante os testes
+        patcher = patch.object(Lambda, '_load_lambda')
+        mock_load_lambda = patcher.start()
+
+        # Retornar um mock de handler para que o método possa ser usado em testes
+        mock_handler = MagicMock(return_value=handle_value)
+        mock_load_lambda.return_value = mock_handler
+        self.addCleanup(patcher.stop)
+        # Criar uma instância de Lambda para testes
+        lambda_instance = Lambda(
+            name=name,
+            next_state=next_state,
+            timeout=timeout
+        )
+
+        lambda_instance._handler = mock_handler
+
+        # Verificar que _load_lambda foi chamado durante a inicialização
+        mock_load_lambda.assert_called_once()
+        return lambda_instance, mock_handler
+
     def setUp(self):
         """Set up test fixtures before each test method."""
-        # Create Lambda objects with mocked handlers
-        self.lambda1 = Lambda("lambda1", "lambda2", timeout=5)
-        self.lambda1_handler = MagicMock(return_value={"key": "value1"})
+        self.lambda_1, self.lambda1_handler = self.setup_lambda_handlers(
+            "lambda_1",
+            "lambda_2",
+            timeout=5,
+            handle_value={"key": "value1"})
 
-        self.lambda2 = Lambda("lambda2", "lambda3", timeout=3)
-        self.lambda2_handler = MagicMock(return_value={"key": "value2"})
+        self.lambda_2, self.lambda2_handler = self.setup_lambda_handlers(
+            "lambda_2",
+            "lambda_3",
+            timeout=3,
+            handle_value={"key": "value2"})
 
-        self.lambda3 = Lambda("lambda3", None, timeout=2)
-        self.lambda3_handler = MagicMock(
-            return_value={"key": "value3", "result": "final"})
-
-        # Replace the handler methods with our mocks
-        self.lambda1._handler = self.lambda1_handler
-        self.lambda2._handler = self.lambda2_handler
-        self.lambda3._handler = self.lambda3_handler
+        self.lambda_3, self.lambda3_handler = self.setup_lambda_handlers(
+            "lambda_3",
+            None,
+            timeout=2,
+            handle_value={"key": "value3", "result": "final"})
 
         # Default machine tree for testing
-        self.machine_tree = [self.lambda1, self.lambda2, self.lambda3]
+        self.machine_tree = [self.lambda_1, self.lambda_2, self.lambda_3]
 
     def test_initialization(self):
         """Test StateMachine initialization and parameter validation."""
@@ -38,7 +64,7 @@ class TestStateMachine(unittest.TestCase):
 
         # Check machine properties
         self.assertEqual(machine.machine_name, "test_machine")
-        self.assertEqual(machine.head_lambda, self.lambda1)
+        self.assertEqual(machine.head_lambda, self.lambda_1)
         self.assertEqual(len(machine.machine_tree), 3)
         # Sum of lambdas timeouts (5+3+2)
         self.assertEqual(machine.timeout, 10)
