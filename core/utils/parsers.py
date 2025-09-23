@@ -22,15 +22,19 @@ class ConditionParser(ABC):
 
 
 class LiteralStringParser(ConditionParser):
+    """Parses conditions containing single quotes (literal string) by removing the first two occurrences."""
+
     def can_parse(self) -> bool:
         return "'" in self.condition
 
     def parse(self, evaluator: 'Choice') -> Any:
-        # Apenas as duas primeiras aspas simples devem ser removidas, as demais devem ser mantias.
+        # Only the first two single quotes should be removed, the others should be kept.
         return self.condition.replace("'", '', 2)
 
 
 class EmptyListParser(ConditionParser):
+    """Parses conditions representing empty lists and returns an empty list."""
+
     def can_parse(self) -> bool:
         return "[]" in self.condition
 
@@ -39,6 +43,8 @@ class EmptyListParser(ConditionParser):
 
 
 class ListParser(ConditionParser):
+    """Parses list conditions from a string and evaluates each item using the provided evaluator."""
+
     def can_parse(self) -> bool:
         return "[" in self.condition
 
@@ -48,6 +54,8 @@ class ListParser(ConditionParser):
 
 
 class JsonPathParser(ConditionParser):
+    """Parses and evaluates JSONPath expressions against a given JSON-like object."""
+
     def can_parse(self) -> bool:
         return "$." in self.condition
 
@@ -75,18 +83,25 @@ class JsonPathParser(ConditionParser):
 
 
 class NumberParser(ConditionParser):
-    def can_parse(self) -> bool:
-        if '.' in self.condition:
-            condition = self.condition.replace('.', '')
+    """Parses numeric string conditions, supporting both integer and float representations."""
 
-        return self.condition.isnumeric()
+    def can_parse(self) -> bool:
+        condition = self.condition
+
+        if '.' in condition:
+            condition = condition.replace('.', '')
+
+        return condition.isnumeric()
 
     def parse(self, evaluator: 'Choice') -> Any:
-        try:
-            if '.' in self.condition:
-                return float(self.condition)
 
-            return int(self.condition)
+        condition = self.condition
+
+        try:
+            if '.' in condition:
+                return float(condition)
+
+            return int(condition)
 
         except ValueError:
             return float('nan')
