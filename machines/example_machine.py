@@ -7,7 +7,9 @@ from core.blocks.parallel_handler import ParallelHandler
 
 
 def example_parallel_machine():
+
     work_dir = "example"
+
     workflow1 = StateMachine("parallel_workflow1", [
         Lambda(f"{work_dir}/center_state", None, timeout=10)
     ])
