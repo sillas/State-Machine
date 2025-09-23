@@ -12,7 +12,7 @@ class ConditionParser(ABC):
         pass
 
     @abstractmethod
-    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice', condition: str) -> Any:
         pass
 
 
@@ -20,7 +20,7 @@ class LiteralStringParser(ConditionParser):
     def can_parse(self, condition: str) -> bool:
         return "'" in condition
 
-    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice', condition: str) -> Any:
         # Apenas as duas primeiras aspas simples devem ser removidas, as demais devem ser mantias.
         return condition.replace("'", '', 2)
 
@@ -29,7 +29,7 @@ class EmptyListParser(ConditionParser):
     def can_parse(self, condition: str) -> bool:
         return "[]" in condition
 
-    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice', condition: str) -> Any:
         return []
 
 
@@ -37,7 +37,7 @@ class ListParser(ConditionParser):
     def can_parse(self, condition: str) -> bool:
         return "[" in condition
 
-    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice', condition: str) -> Any:
         cond_list = condition.split('[')[1].split(']')[0].split(',')
         return [evaluator._parse_condition(item) for item in cond_list]
 
@@ -46,7 +46,7 @@ class JsonPathParser(ConditionParser):
     def can_parse(self, condition: str) -> bool:
         return "$." in condition
 
-    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice', condition: str) -> Any:
         return evaluator._jsonpath_query(evaluator._data, condition)
 
 
@@ -57,7 +57,7 @@ class NumberParser(ConditionParser):
 
         return condition.isnumeric()
 
-    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice', condition: str) -> Any:
         try:
             if '.' in condition:
                 return float(condition)
@@ -89,9 +89,9 @@ OPERATORS = {
 }
 
 
-class ConditionalEvaluator:
+class Choice:
     """
-    ConditionalEvaluator is a class designed to parse and evaluate conditional expressions over structured data (typically dictionaries or JSON-like objects).
+    Choice is a class designed to parse and evaluate conditional expressions over structured data (typically dictionaries or JSON-like objects).
     Supported Syntax:
         - term: JSONPath expression (e.g., $.item), literal string, literal number, empty list, or list of C.
         - op: Comparison operators (gt, lt, eq, neq, gte, lte, contains, starts_with, ends_with).
@@ -112,11 +112,16 @@ class ConditionalEvaluator:
     """
 
     _data = None
+    _operations = []
 
-    def __init__(self, data: dict[str, Any]) -> None:
+    def __init__(self, operations: list[str]) -> None:
+        self._operations = operations
+
+    def run(self, data: dict[str, Any]):
         self._data = data
+        return self._evaluate(self._operations)
 
-    def evaluate(self, operations: list[str]) -> Any:
+    def _evaluate(self, operations: list[str]) -> Any:
         """
         Evaluates a list of conditional operation strings and returns the result based on the first satisfied condition.
 
@@ -164,12 +169,12 @@ class ConditionalEvaluator:
                         return then.split(' else ')[0].strip()
 
                     if "then" in then:
-                        then = self.evaluate([then])
+                        then = self._evaluate([then])
 
                     return then
 
                 if ' else ' in then:
-                    result = self.evaluate(
+                    result = self._evaluate(
                         [then.split(' else ', 1)[1].strip()])
                     if result is None:
                         continue
@@ -262,7 +267,6 @@ if __name__ == "__main__":
         "price": 170,
         "empty_list": []
     }
-    evaluator = ConditionalEvaluator(test_data)
 
     # Lista de operações
     operations = [
@@ -275,6 +279,8 @@ if __name__ == "__main__":
         "'default value'"
     ]
 
+    evaluator = Choice(operations)
+
     # Testa a avaliação
-    result = evaluator.evaluate(operations)
+    result = evaluator.run(test_data)
     print(f"Resultado X: {result}")
