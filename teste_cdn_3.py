@@ -140,34 +140,44 @@ class ConditionalEvaluator:
         """
 
         for ops in operations:
-            sttm_parts = ops.split(' then ', 1)
+            try:
 
-            if len(sttm_parts) < 2:
-                condition = sttm_parts[0]
-
-                if len(condition) > 0:
-                    return self._parse_condition(sttm_parts[0].strip())
-
-                raise ValueError("Invalid operation format: ", ops)
-
-            when, then = sttm_parts
-            result = self._parse_condition(when.replace("when", '').strip())
-
-            if result:
-                if ' else ' in then:
-                    return then.split(' else ')[0].strip()
-
-                if "then" in then:
-                    then = self.evaluate([then])
-
-                return then
-
-            if ' else ' in then:
-                result = self.evaluate([then.split(' else ', 1)[1].strip()])
-                if result is None:
+                if not ops or not ops.strip():
                     continue
 
-                return result
+                ops = ops.strip()
+
+                if ' then ' not in ops:
+                    return self._parse_condition(ops)
+
+                when_part, then = ops.split(' then ', 1)
+
+                if when_part.strip().startswith('when '):
+                    condition = when_part[5:]  # Remove 'when '
+                else:
+                    condition = when_part
+
+                result = self._parse_condition(condition.strip())
+
+                if result:
+                    if ' else ' in then:
+                        return then.split(' else ')[0].strip()
+
+                    if "then" in then:
+                        then = self.evaluate([then])
+
+                    return then
+
+                if ' else ' in then:
+                    result = self.evaluate(
+                        [then.split(' else ', 1)[1].strip()])
+                    if result is None:
+                        continue
+
+                    return result
+
+            except Exception as e:
+                continue
 
         return None
 
@@ -256,11 +266,11 @@ if __name__ == "__main__":
 
     # Lista de operações
     operations = [
-        # "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
-        # "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
-        # "when $.user.items contains 'banana' then 'has banana'",
-        # "when $.price gte 100 then 'expensive'",
-        # "when (not $.price gte 180) then 'sheper'",
+        "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
+        "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
+        "when $.user.items contains 'banana' then 'has banana'",
+        "when $.price gte 100 then 'expensive'",
+        "when (not $.price gte 180) then 'sheper'",
         "when $.empty_list eq [] then 'list is empty'",
         "'default value'"
     ]
