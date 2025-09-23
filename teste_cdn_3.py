@@ -78,10 +78,9 @@ class ConditionalEvaluator:
             raise ValueError("Condition cannot be empty or None!")
 
         if '(' in condition:
-            # condition = condition.split('(')[1].split(')')[0]
             condition = self._extract_parentheses_content(condition)
 
-        if ' not ' in condition:  # not
+        if 'not ' in condition:
             not_condition = condition.split('not ')[1]
 
             if not_condition is None or not_condition.strip() == "":
@@ -89,7 +88,7 @@ class ConditionalEvaluator:
 
             return not self._parse_condition(not_condition.strip())
 
-        if ' and ' in condition or ' or ' in condition:  # cond bool_op cond
+        if ' and ' in condition or ' or ' in condition:  # condition bool_op condition
             op = ' and ' if ' and ' in condition else ' or '
 
             left, right = condition.split(op, 1)
@@ -110,13 +109,17 @@ class ConditionalEvaluator:
                     right = self._parse_condition(right.strip())
                     return func(left, right)
 
-        if "'" in condition:
-            return condition.replace("'", '', 2)  # literal string
+        if "'" in condition:  # literal string
+            # Deve remover apenas as duas primeiras aspas e manter as demais.
+            return condition.replace("'", '', 2)
+
         if "[]" in condition:
             return []
+
         if "[" in condition:
             cond_list = condition.split('[')[1].split(']')[0].split(',')
             return [self._parse_condition(item) for item in cond_list]
+
         if "$." in condition:
             return self._jsonpath_query(self._data, condition)
 
@@ -136,6 +139,7 @@ class ConditionalEvaluator:
         """
         try:
             jsonpath_expr = parse(expr)
+
         except Exception as e:
             raise ValueError(f"Invalid JSONPath expression: {expr}") from e
 
@@ -154,7 +158,7 @@ if __name__ == "__main__":
     test_data = {
         "user": {
             "name": "Jonas Silva",
-            "age": 12,
+            "age": 37,
             "items": ["apple", "banana"]
         },
         "price": 171,
@@ -164,16 +168,12 @@ if __name__ == "__main__":
 
     # Lista de operações
     operations = [
-        "when $.user.age gt 36 then 'senior' else when $.user.age lt 10 then 'children' else 'young'",
-        # "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
-        # "when $.user.items contains 'uva' then 'has apple'",
-        # "when ($.price gte 100) then 'expensive'",
-        # "when $.empty_list eq [] then 'list is empty'",
+        "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
+        "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
+        "when $.user.items contains 'uva' then 'has apple'",
+        "when (not $.price gte 100) then 'expensive'",
+        "when $.empty_list eq [] then 'list is empty'",
         "'default value'"
-
-        # "when $.value gt 10 and $.value lt 53 or $.value eq 100 then 'certo'",
-        # "when $.value neq 99 then 'errado'",
-        # "'none!'"
     ]
 
     # Testa a avaliação
