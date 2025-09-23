@@ -2,7 +2,7 @@
 
 A flexible state machine implementation similar to AWS Step Functions, designed to orchestrate and coordinate AI agent workflows.
 
-**⚠️ DEVELOPMENT STATUS**: This project is currently in active development and may not function as expected. APIs, interfaces, and functionality are subject to change without notice. Please do not use in production environments.
+**⚠️ DEVELOPMENT STATUS**: This project is currently in active development and may not function correctly or functionality may be incomplete. APIs, interfaces, and functionality are subject to change without notice. Please do not use in production environments.
 
 ## Overview
 
