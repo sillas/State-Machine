@@ -2,6 +2,8 @@
 
 A flexible state machine implementation similar to AWS Step Functions, designed to orchestrate and coordinate AI agent workflows.
 
+**⚠️ DEVELOPMENT STATUS**: This project is currently in active development and may not function as expected. APIs, interfaces, and functionality are subject to change without notice. Please do not use in production environments.
+
 ## Overview
 
 This project provides a state machine framework that allows you to define, execute, and manage complex workflows involving AI agents. The state machine handles the sequential execution of lambdas (function handlers), conditional branching, and state transitions, making it ideal for coordinating multi-step AI agent processes.

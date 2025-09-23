@@ -196,34 +196,3 @@ class Choice(State):
             p: ConditionParser = parser(condition)
             if p.can_parse():
                 return p.parse(self)
-
-
-# if __name__ == "__main__":
-#     # TODO: Move to examples
-#     # Dados de teste
-#     test_data = {
-#         "user": {
-#             "name": "Jonas Silva",
-#             "age": 37,
-#             "items": ["apple", "banana"]
-#         },
-#         "price": 170,
-#         "empty_list": []
-#     }
-
-#     # Lista de operações
-#     operations = [
-#         "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
-#         "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
-#         "when $.user.items contains 'banana' then 'has banana'",
-#         "when $.price gte 100 then 'expensive'",
-#         "when (not $.price gte 180) then 'sheper'",
-#         "when $.empty_list eq [] then 'list is empty'",
-#         "'default value'"
-#     ]
-
-#     evaluator = Choice(operations)
-
-#     # Testa a avaliação
-#     result = evaluator.run(test_data)
-#     print(f"Resultado X: {result}")
