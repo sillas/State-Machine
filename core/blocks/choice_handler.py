@@ -1,6 +1,9 @@
+import logging
 import re
+from time import time
 from typing import Any
 from core.utils.parsers import PARSERS, ConditionParser
+from core.utils.state_base import State, StateType
 
 
 OPERATORS = {
@@ -16,7 +19,7 @@ OPERATORS = {
 }
 
 
-class Choice:
+class Choice(State):
     """
     Choice is a class designed to parse and evaluate conditional expressions over structured data (typically dictionaries or JSON-like objects).
     Supported Syntax:
@@ -40,12 +43,15 @@ class Choice:
     _data = None
     _operations = []
 
-    def __init__(self, operations: list[str]) -> None:
-        self._operations = operations
+    def __init__(self, name: str, statements: list[str]) -> None:
+        self._operations = statements
+        super().__init__(name=name, next_state=None, type=StateType.CHOICE, timeout=1)
 
-    def run(self, data: dict[str, Any]):
-        self._data = data
-        return self._evaluate(self._operations)
+    def handler(self, event: Any, context: dict[str, Any]):
+        self._data = event
+        context["timestamp"] = time()
+        self.next_state = self._evaluate(self._operations)
+        return event
 
     def _evaluate(self, operations: list[str]) -> Any:
         """
@@ -72,15 +78,15 @@ class Choice:
 
         for ops in operations:
             try:
-
                 if not ops or not ops.strip():
                     continue
 
-                ops = ops.strip()
+                ops = ops.replace('  ', ' ').strip()
 
                 if ' then ' not in ops:
                     return self._parse_condition(ops)
 
+                # [($.value gt 10) and ($.value lt 53)] then ['example/center_state' else 'example/outer_state']
                 when_part, then = ops.split(' then ', 1)
 
                 if when_part.strip().startswith('when '):
@@ -92,31 +98,39 @@ class Choice:
 
                 if result:
                     if ' else ' in then:
-                        return then.split(' else ')[0].strip()
+                        then = then.split(' else ', 1)[0].strip()
 
-                    if "then" in then:
-                        then = self._evaluate([then])
-
-                    return then
+                    return self._evaluate([then])
 
                 if ' else ' in then:
-                    result = self._evaluate(
-                        [then.split(' else ', 1)[1].strip()])
+                    else_sttm = then.split(' else ', 1)[1].strip()
+                    result = self._evaluate([else_sttm])
                     if result is None:
                         continue
 
                     return result
 
             except Exception as e:
+                # TODO add warning logs
                 continue
 
         return None
 
     def _extract_parentheses_content(self, condition: str) -> str:
-        """Extrai conteúdo entre parênteses de forma mais robusta."""
+        """
+        Extrai conteúdo entre parênteses de forma mais robusta.
+        Se condition for do tipo "(condition)", retorna "condition";
+        Se for do tipo: "(condition) and (condition)" ou "(condition) or (condition)", retorna sem remover nada.
+        """
+        # Verifica se há operadores booleanos na condition
+        if ' and ' in condition or ' or ' in condition:
+            return condition
+
+        # Se não há operadores booleanos, remove parênteses externos se existirem
         match = re.search(r'\((.*)\)', condition)
         if match:
             return match.group(1)
+
         return condition
 
     def _parse_condition(self, condition: str | None) -> Any:
@@ -130,10 +144,10 @@ class Choice:
         if condition.startswith('not '):  # not condition
             not_condition = condition[4:].strip()
 
-            if not_condition is None or not_condition.strip() == "":
+            if not_condition == "":
                 raise ValueError(f"Wrong condition value: {not_condition}")
 
-            return not self._parse_condition(not_condition.strip())
+            return not self._parse_condition(not_condition)
 
         if ' and ' in condition or ' or ' in condition:  # condition bool_op condition
             op = ' and ' if ' and ' in condition else ' or '
@@ -158,32 +172,32 @@ class Choice:
                 return p.parse(self, condition)
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
+#     # TODO: Move to examples
+#     # Dados de teste
+#     test_data = {
+#         "user": {
+#             "name": "Jonas Silva",
+#             "age": 37,
+#             "items": ["apple", "banana"]
+#         },
+#         "price": 170,
+#         "empty_list": []
+#     }
 
-    # Dados de teste
-    test_data = {
-        "user": {
-            "name": "Jonas Silva",
-            "age": 37,
-            "items": ["apple", "banana"]
-        },
-        "price": 170,
-        "empty_list": []
-    }
+#     # Lista de operações
+#     operations = [
+#         "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
+#         "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
+#         "when $.user.items contains 'banana' then 'has banana'",
+#         "when $.price gte 100 then 'expensive'",
+#         "when (not $.price gte 180) then 'sheper'",
+#         "when $.empty_list eq [] then 'list is empty'",
+#         "'default value'"
+#     ]
 
-    # Lista de operações
-    operations = [
-        "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
-        "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
-        "when $.user.items contains 'banana' then 'has banana'",
-        "when $.price gte 100 then 'expensive'",
-        "when (not $.price gte 180) then 'sheper'",
-        "when $.empty_list eq [] then 'list is empty'",
-        "'default value'"
-    ]
+#     evaluator = Choice(operations)
 
-    evaluator = Choice(operations)
-
-    # Testa a avaliação
-    result = evaluator.run(test_data)
-    print(f"Resultado X: {result}")
+#     # Testa a avaliação
+#     result = evaluator.run(test_data)
+#     print(f"Resultado X: {result}")

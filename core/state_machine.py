@@ -1,8 +1,8 @@
 from typing import Any, Optional, Sequence
+import concurrent.futures
 import time as t
 import logging
 import uuid
-import concurrent.futures
 
 from core.exceptions import StateMachineExecutionError, StateNotFoundError
 from core.utils.state_base import State
@@ -95,9 +95,9 @@ class StateMachine:
 
             logging.info(
                 {
-                    **context,
+                    "message": f"Entering state {next_state}",
                     "input": event,
-                    "message": f"Entering state {next_state}"
+                    **context
                 }
             )
 
@@ -111,39 +111,39 @@ class StateMachine:
                     future = executor.submit(
                         step_lambda.handler, event, context)
                     try:
-                        event = future.result(
-                            timeout=state_timeout)
+                        event = future.result(timeout=state_timeout)
                     except concurrent.futures.TimeoutError:
                         future.cancel()
                         logging.error(
                             {
+                                "message": f"State {context['state_name']} timed out.",
                                 "execution_id": execution_id,
                                 "state_name": context["state_name"],
-                                "message": f"State {context['state_name']} timed out."
                             }
                         )
                         raise TimeoutError(
                             f"State {context['state_name']} timed out after {state_timeout} seconds."
                         )
+
                 next_state = step_lambda.next_state
-                # ----------------------------------------------
+                # ----------------------------------------
                 step_duration = t.time() - step_start_time
 
                 logging.info(
                     {
+                        "message": f"Exiting state {context['state_name']}",
                         "execution_id": execution_id,
                         "state_name": context["state_name"],
                         "output": event,
                         "duration": step_duration,
-                        "message": f"Exiting state {context['state_name']}"
                     }
                 )
 
                 if next_state is None:
                     logging.info(
                         {
-                            "execution_id": execution_id,
                             "message": "Execution completed successfully.",
+                            "execution_id": execution_id,
                             "final_output": event,
                             "total_duration": t.time() - start_time
                         }
@@ -156,10 +156,10 @@ class StateMachine:
             except Exception as e:
                 logging.error(
                     {
+                        "message": f"Error occurred in state {next_state}",
                         "execution_id": execution_id,
                         "state_name": next_state,
                         "error": str(e),
-                        "message": f"Error occurred in state {next_state}"
                     }
                 )
                 raise StateMachineExecutionError(
