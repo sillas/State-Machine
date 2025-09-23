@@ -104,7 +104,7 @@ class NumberParser(ConditionParser):
             return int(condition)
 
         except ValueError:
-            return float('nan')
+            raise ValueError(f"Cannot parse '{condition}' as a number")
 
 
 PARSERS = [
