@@ -7,12 +7,12 @@ from core.blocks.parallel_handler import ParallelHandler
 
 
 def example_parallel_machine():
-
+    work_dir = "example"
     workflow1 = StateMachine("parallel_workflow1", [
-        Lambda("example/center_state", None, timeout=10)
+        Lambda(f"{work_dir}/center_state", None, timeout=10)
     ])
     workflow2 = StateMachine("parallel_workflow2", [
-        Lambda("example/outer_state", None, timeout=20)
+        Lambda(f"{work_dir}/outer_state", None, timeout=20)
     ])
 
     machine_tree = [
@@ -30,15 +30,16 @@ def example_parallel_machine():
 
 
 def example_machine():
+    work_dir = "example"
 
     if__in_or_out__statements = [
-        "when ($.value gt 10) and ($.value lt 53) then 'example/center_state' else 'example/outer_state'"
+        f"when ($.value gt 10) and ($.value lt 53) then '{work_dir}/center_state' else '{work_dir}/outer_state'"
     ]
 
     machine_tree = [
-        Lambda("example/center_state", "in_or_out"),  # Input First
+        Lambda(f"{work_dir}/center_state", "in_or_out"),  # Input First
         Choice("in_or_out", if__in_or_out__statements),
-        Lambda("example/outer_state", None),  # Output!
+        Lambda(f"{work_dir}/outer_state", None),  # Output!
     ]
 
     machine = StateMachine("example_machine", machine_tree)
