@@ -86,7 +86,6 @@ class Choice(State):
                 if ' then ' not in ops:
                     return self._parse_condition(ops)
 
-                # [($.value gt 10) and ($.value lt 53)] then ['example/center_state' else 'example/outer_state']
                 when_part, then = ops.split(' then ', 1)
 
                 if when_part.strip().startswith('when '):
@@ -118,15 +117,23 @@ class Choice(State):
 
     def _extract_parentheses_content(self, condition: str) -> str:
         """
-        Extrai conteúdo entre parênteses de forma mais robusta.
-        Se condition for do tipo "(condition)", retorna "condition";
-        Se for do tipo: "(condition) and (condition)" ou "(condition) or (condition)", retorna sem remover nada.
+        Extracts the content within the outermost parentheses from the given condition string.
+
+        If the condition contains logical operators ('and' or 'or'), the original string is returned.
+        Otherwise, if the condition is enclosed in parentheses, the content inside the parentheses is returned.
+        If there are no parentheses, the original string is returned.
+
+        Args:
+            condition (str): The condition string to extract content from.
+
+        Returns:
+            str: The content inside the outermost parentheses, or the original string if no parentheses are found or if logical operators are present.
         """
-        # Verifica se há operadores booleanos na condition
+
         if ' and ' in condition or ' or ' in condition:
             return condition
 
-        # Se não há operadores booleanos, remove parênteses externos se existirem
+        # Remove parênteses externos se existirem
         match = re.search(r'\((.*)\)', condition)
         if match:
             return match.group(1)
@@ -134,6 +141,25 @@ class Choice(State):
         return condition
 
     def _parse_condition(self, condition: str | None) -> Any:
+        """
+        Parses and evaluates a logical or comparison condition expressed as a string.
+
+        Supports the following condition formats:
+            - Parenthesized conditions (e.g., "(condition)")
+            - Negation using 'not' (e.g., "not condition")
+            - Logical operations 'and'/'or' (e.g., "cond1 and cond2", "cond1 or cond2")
+            - Comparisons using supported operators (e.g., "a eq b", "x bt y")
+            - Custom condition parsing via registered PARSERS
+
+        Args:
+            condition (str | None): The condition string to parse and evaluate.
+
+        Returns:
+            Any: The result of evaluating the parsed condition.
+
+        Raises:
+            ValueError: If the condition is None, empty, or malformed.
+        """
 
         if condition is None or condition == '':
             raise ValueError("Condition cannot be empty or None!")
@@ -144,7 +170,7 @@ class Choice(State):
         if condition.startswith('not '):  # not condition
             not_condition = condition[4:].strip()
 
-            if not_condition == "":
+            if not not_condition:
                 raise ValueError(f"Wrong condition value: {not_condition}")
 
             return not self._parse_condition(not_condition)
@@ -167,9 +193,9 @@ class Choice(State):
                     return func(left, right)
 
         for parser in PARSERS:
-            p: ConditionParser = parser()
-            if p.can_parse(condition):
-                return p.parse(self, condition)
+            p: ConditionParser = parser(condition)
+            if p.can_parse():
+                return p.parse(self)
 
 
 # if __name__ == "__main__":

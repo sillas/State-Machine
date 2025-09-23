@@ -9,47 +9,50 @@ if TYPE_CHECKING:
 class ConditionParser(ABC):
     """Interface para parsers de condição."""
 
+    def __init__(self, condition: str):
+        self.condition = condition
+
     @abstractmethod
-    def can_parse(self, condition: str) -> bool:
+    def can_parse(self) -> bool:
         pass
 
     @abstractmethod
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice') -> Any:
         pass
 
 
 class LiteralStringParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "'" in condition
+    def can_parse(self) -> bool:
+        return "'" in self.condition
 
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice') -> Any:
         # Apenas as duas primeiras aspas simples devem ser removidas, as demais devem ser mantias.
-        return condition.replace("'", '', 2)
+        return self.condition.replace("'", '', 2)
 
 
 class EmptyListParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "[]" in condition
+    def can_parse(self) -> bool:
+        return "[]" in self.condition
 
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice') -> Any:
         return []
 
 
 class ListParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "[" in condition
+    def can_parse(self) -> bool:
+        return "[" in self.condition
 
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        cond_list = condition.split('[')[1].split(']')[0].split(',')
+    def parse(self, evaluator: 'Choice') -> Any:
+        cond_list = self.condition.split('[')[1].split(']')[0].split(',')
         return [evaluator._parse_condition(item) for item in cond_list]
 
 
 class JsonPathParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "$." in condition
+    def can_parse(self) -> bool:
+        return "$." in self.condition
 
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        return self._jsonpath_query(evaluator._data, condition)
+    def parse(self, evaluator: 'Choice') -> Any:
+        return self._jsonpath_query(evaluator._data, self.condition)
 
     def _jsonpath_query(self, obj: Any, expr: str) -> Any:
         """
@@ -72,18 +75,18 @@ class JsonPathParser(ConditionParser):
 
 
 class NumberParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        if '.' in condition:
-            condition = condition.replace('.', '')
+    def can_parse(self) -> bool:
+        if '.' in self.condition:
+            condition = self.condition.replace('.', '')
 
-        return condition.isnumeric()
+        return self.condition.isnumeric()
 
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
+    def parse(self, evaluator: 'Choice') -> Any:
         try:
-            if '.' in condition:
-                return float(condition)
+            if '.' in self.condition:
+                return float(self.condition)
 
-            return int(condition)
+            return int(self.condition)
 
         except ValueError:
             return float('nan')
