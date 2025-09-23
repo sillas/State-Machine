@@ -5,7 +5,7 @@ import uuid
 import concurrent.futures
 
 from core.exceptions import StateMachineExecutionError, StateNotFoundError
-from core.state_base import State
+from core.utils.state_base import State
 
 
 class StateMachine:

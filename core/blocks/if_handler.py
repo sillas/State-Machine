@@ -1,7 +1,7 @@
 from typing import Any
 from time import time
 
-from core.state_base import State, StateType
+from core.utils.state_base import State, StateType
 from core.statement_evaluator import StatementEvaluator
 
 

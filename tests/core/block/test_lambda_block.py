@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from core.blocks.lambda_handler import Lambda
-from core.state_base import StateType
+from core.utils.state_base import StateType
 
 
 class TestLambda(unittest.TestCase):

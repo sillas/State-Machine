@@ -1,80 +1,7 @@
-from abc import ABC, abstractmethod
 import re
 from typing import Any
-from jsonpath_ng import parse
+from core.utils.parsers import PARSERS, ConditionParser
 
-
-class ConditionParser(ABC):
-    """Interface para parsers de condição."""
-
-    @abstractmethod
-    def can_parse(self, condition: str) -> bool:
-        pass
-
-    @abstractmethod
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        pass
-
-
-class LiteralStringParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "'" in condition
-
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        # Apenas as duas primeiras aspas simples devem ser removidas, as demais devem ser mantias.
-        return condition.replace("'", '', 2)
-
-
-class EmptyListParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "[]" in condition
-
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        return []
-
-
-class ListParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "[" in condition
-
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        cond_list = condition.split('[')[1].split(']')[0].split(',')
-        return [evaluator._parse_condition(item) for item in cond_list]
-
-
-class JsonPathParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        return "$." in condition
-
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        return evaluator._jsonpath_query(evaluator._data, condition)
-
-
-class NumberParser(ConditionParser):
-    def can_parse(self, condition: str) -> bool:
-        if '.' in condition:
-            condition = condition.replace('.', '')
-
-        return condition.isnumeric()
-
-    def parse(self, evaluator: 'Choice', condition: str) -> Any:
-        try:
-            if '.' in condition:
-                return float(condition)
-
-            return int(condition)
-
-        except ValueError:
-            return float('nan')
-
-
-PARSERS = [
-    EmptyListParser,
-    LiteralStringParser,
-    JsonPathParser,
-    ListParser,
-    NumberParser
-]
 
 OPERATORS = {
     ' gt ': lambda l, r: l > r,
@@ -104,7 +31,6 @@ class Choice:
         - evaluate(operations): Evaluates a list of conditional operation strings, returning the result of the first satisfied condition or None.
         - _parse_condition(condition): Parses and evaluates a single condition string.
         - _extract_parentheses_content(condition): Extracts content within parentheses from a condition string.
-        - _jsonpath_query(obj, expr): Executes a JSONPath query on the provided object.
     Usage:
         Instantiate with a data dictionary, then call `evaluate()` with a list of conditional statements.
         The class supports nested conditions, boolean logic, and JSONPath queries for dynamic data extraction.
@@ -213,14 +139,10 @@ class Choice:
             op = ' and ' if ' and ' in condition else ' or '
 
             left, right = condition.split(op, 1)
-
             left = self._parse_condition(left)
             right = self._parse_condition(right)
 
-            if op == ' and ':
-                return left and right
-
-            return left or right
+            return left and right if op == ' and ' else left or right
 
         if ' ' in condition.strip():  # comparison
             for op, func in OPERATORS.items():
@@ -234,25 +156,6 @@ class Choice:
             p: ConditionParser = parser()
             if p.can_parse(condition):
                 return p.parse(self, condition)
-
-    def _jsonpath_query(self, obj: Any, expr: str) -> Any:
-        """
-        Takes a JSON object (Python dict/list) and a JSONPath expression,
-        returns a list with the values found or a single value if only one match.
-        """
-        try:
-            jsonpath_expr = parse(expr)
-
-        except Exception as e:
-            raise ValueError(f"Invalid JSONPath expression: {expr}") from e
-
-        matches = jsonpath_expr.find(obj)
-        result = [match.value for match in matches]
-
-        if len(result) == 1:
-            return result[0]
-
-        return result
 
 
 if __name__ == "__main__":
