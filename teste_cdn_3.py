@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import re
 from typing import Any
 from jsonpath_ng import parse
@@ -13,6 +14,78 @@ OPERATORS = {
     ' starts_with ': lambda l, r: l.startswith(r),
     ' ends_with ': lambda l, r: l.endswith(r)
 }
+
+
+class ConditionParser(ABC):
+    """Interface para parsers de condição."""
+
+    @abstractmethod
+    def can_parse(self, condition: str) -> bool:
+        pass
+
+    @abstractmethod
+    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+        pass
+
+
+class LiteralStringParser(ConditionParser):
+    def can_parse(self, condition: str) -> bool:
+        return "'" in condition
+
+    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+        return condition.replace("'", '', 2)
+
+
+class EmptyListParser(ConditionParser):
+    def can_parse(self, condition: str) -> bool:
+        return "[]" in condition
+
+    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+        return []
+
+
+class ListParser(ConditionParser):
+    def can_parse(self, condition: str) -> bool:
+        return "[" in condition
+
+    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+        cond_list = condition.split('[')[1].split(']')[0].split(',')
+        return [evaluator._parse_condition(item) for item in cond_list]
+
+
+class JsonPathParser(ConditionParser):
+    def can_parse(self, condition: str) -> bool:
+        return "$." in condition
+
+    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+        return evaluator._jsonpath_query(evaluator._data, condition)
+
+
+class NumberParser(ConditionParser):
+    def can_parse(self, condition: str) -> bool:
+        if '.' in condition:
+            condition = condition.replace('.', '')
+
+        return condition.isnumeric()
+
+    def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+        try:
+            if '.' in condition:
+                return float(condition)
+
+            return int(condition)
+
+        except ValueError:
+            return float('nan')
+
+
+PARSERS = [
+    LiteralStringParser,
+    EmptyListParser,
+    ListParser,
+    JsonPathParser,
+    NumberParser
+]
 
 
 class ConditionalEvaluator:
@@ -62,7 +135,6 @@ class ConditionalEvaluator:
 
                 return result
 
-        print("OPS!!! 4")
         return None
 
     def _extract_parentheses_content(self, condition: str) -> str:
@@ -77,10 +149,10 @@ class ConditionalEvaluator:
         if condition is None or condition == '':
             raise ValueError("Condition cannot be empty or None!")
 
-        if '(' in condition:
+        if '(' in condition:  # (condition)
             condition = self._extract_parentheses_content(condition)
 
-        if 'not ' in condition:
+        if 'not ' in condition:  # not condition
             not_condition = condition.split('not ')[1]
 
             if not_condition is None or not_condition.strip() == "":
@@ -96,12 +168,12 @@ class ConditionalEvaluator:
             left = self._parse_condition(left)
             right = self._parse_condition(right)
 
-            if op == ' and ':  # 1
+            if op == ' and ':
                 return left and right
 
             return left or right
 
-        if ' ' in condition.strip():
+        if ' ' in condition.strip():  # comparison
             for op, func in OPERATORS.items():
                 if op in condition:
                     left, right = condition.split(op, 1)
@@ -109,28 +181,10 @@ class ConditionalEvaluator:
                     right = self._parse_condition(right.strip())
                     return func(left, right)
 
-        if "'" in condition:  # literal string
-            # Deve remover apenas as duas primeiras aspas e manter as demais.
-            return condition.replace("'", '', 2)
-
-        if "[]" in condition:
-            return []
-
-        if "[" in condition:
-            cond_list = condition.split('[')[1].split(']')[0].split(',')
-            return [self._parse_condition(item) for item in cond_list]
-
-        if "$." in condition:
-            return self._jsonpath_query(self._data, condition)
-
-        try:
-            if "." in condition:
-                return float(condition)
-
-            return int(condition)
-
-        except ValueError:
-            raise ValueError(f"Valor não é um número válido: {condition}")
+        for parser in PARSERS:
+            p: ConditionParser = parser()
+            if p.can_parse(condition):
+                return p.parse(self, condition)
 
     def _jsonpath_query(self, obj: Any, expr: str) -> Any:
         """
@@ -161,17 +215,18 @@ if __name__ == "__main__":
             "age": 37,
             "items": ["apple", "banana"]
         },
-        "price": 171,
+        "price": 170,
         "empty_list": []
     }
     evaluator = ConditionalEvaluator(test_data)
 
     # Lista de operações
     operations = [
-        "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
-        "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
-        "when $.user.items contains 'uva' then 'has apple'",
-        "when (not $.price gte 100) then 'expensive'",
+        # "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
+        # "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
+        # "when $.user.items contains 'banana' then 'has banana'",
+        # "when $.price gte 100 then 'expensive'",
+        # "when (not $.price gte 180) then 'sheper'",
         "when $.empty_list eq [] then 'list is empty'",
         "'default value'"
     ]
