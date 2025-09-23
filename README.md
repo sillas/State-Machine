@@ -2,6 +2,8 @@
 
 A flexible state machine implementation similar to AWS Step Functions, designed to orchestrate and coordinate AI agent workflows.
 
+**⚠️ DEVELOPMENT STATUS**: This project is currently in active development and may not function correctly or functionality may be incomplete. APIs, interfaces, and functionality are subject to change without notice. Please do not use in production environments.
+
 ## Overview
 
 This project provides a state machine framework that allows you to define, execute, and manage complex workflows involving AI agents. The state machine handles the sequential execution of lambdas (function handlers), conditional branching, and state transitions, making it ideal for coordinating multi-step AI agent processes.
@@ -9,10 +11,11 @@ This project provides a state machine framework that allows you to define, execu
 ## Features
 
 - **Lambda-based Architecture**: Define reusable function handlers that perform specific tasks in your workflow
-- **Conditional Branching**: Powerful JSON-based condition evaluation to control workflow paths
-- **JSONPath Support**: Query and manipulate data using JSONPath expressions
-- **Timeout Handling**: Built-in timeout protection for long-running workflows
-- **Flexible State Transitions**: Define complex state transitions based on the output of previous steps
+- **Powerful Choice Logic**: Natural language-like conditional statements with JSONPath support
+- **Parallel Execution**: Run multiple workflows concurrently with ParallelHandler
+- **Advanced Condition Parsing**: Support for strings, numbers, lists, JSONPath expressions, and boolean logic
+- **Flexible State Transitions**: Define complex state transitions based on dynamic conditions
+- **Timeout Handling**: Built-in timeout protection for long-running workflows and individual states
 
 ## Use Cases
 
@@ -32,38 +35,19 @@ This project provides a state machine framework that allows you to define, execu
 A state machine consists of a collection of lambda functions and a machine definition that specifies how these functions are connected:
 
 ```python
-from machine_definition.machine import StateMachine
-from utils.constants import Lambda, IF
-from utils.statement_models import StatementBuilder, DefaultStatements, Operator
+from core.state_machine import StateMachine
+from core.blocks.lambda_handler import Lambda
+from core.blocks.choice_handler import Choice
 
-# Define your lambda states
+# Define your state machine with lambdas and choice states
 machine_tree = [
-    Lambda(
-        name="request",
-        next_state="process_data"
-    ),
-    Lambda(
-        name="process_data",
-        next_state="decision"
-    ),
-    IF(
-        name="decision",
-        statements=[
-            StatementBuilder()
-                .when("$.result.confidence", Operator.GT, 0.8)
-                .then("high_confidence")
-                .build(),
-            DefaultStatements.next_state("low_confidence")
-        ]
-    ),
-    Lambda(
-        name="high_confidence",
-        next_state=None
-    ),
-    Lambda(
-        name="low_confidence",
-        next_state=None
-    )
+    Lambda("request", "process_data"),  # Process initial request
+    Lambda("process_data", "decision"),  # Process the data
+    Choice("decision", [
+        "when $.result.confidence gt 0.8 then 'high_confidence' else 'low_confidence'"
+    ]),
+    Lambda("high_confidence", None),  # Final state for high confidence
+    Lambda("low_confidence", None)    # Final state for low confidence
 ]
 
 # Create the state machine
@@ -90,88 +74,179 @@ def lambda_handler(event, context):
     return {"processed_data": "some value"}
 ```
 
-## Statement Evaluation
+## Statement Evaluation and Choice States
 
-The state machine supports complex conditional evaluations using the `StatementEvaluator` class:
+The state machine now supports powerful conditional evaluations using the `Choice` class with natural language-like syntax:
 
-- Supports multiple comparison operators: `gt`, `lt`, `eq`, `neq`, `gte`, `lte`, `contains`, `starts_with`, `ends_with`
-- Boolean operators for combining conditions: `AND`, `OR`
-- JSONPath expressions for querying data
+### Supported Operators
+- Comparison: `gt`, `lt`, `eq`, `neq`, `gte`, `lte`, `contains`, `starts_with`, `ends_with`
+- Boolean: `and`, `or`, `not`
+- Parentheses for grouping: `(condition)`
+
+### Supported Data Types
+- **JSONPath expressions**: `$.user.name`, `$.items[0]`
+- **Literal strings**: `'text value', '42', '3.14'`
+- **Numbers**: 42, 3.14
+- **Empty lists**: `[]`
+- **Lists**: `[item1, item2]`
+
+### Choice Statement Syntax
+
+Choice statements support complex conditional logic with the following formats:
+
+```python
+# When-then statements
+"when $.user.age gt 18 then 'adult'"
+
+# When-then-else statements  
+"when $.user.age gt 18 then 'adult' else 'minor'"
+
+# Complex conditions with boolean operators
+"when ($.user.age gt 18) and ($.user.name starts_with 'John') then 'valid_user'"
+
+# Nested conditions
+"when $.price gt 100 then 'expensive' else when $.price gt 50 then 'medium' else 'cheap'"
+
+# Multiple Conditions in a List (Returns the First True Evaluation)
+# Similar to if, elif..., else
+[
+    "when ($.value gt 10) and ($.value lt 20) then 'inside'",  # returns 'inside' if true
+    "when $.value eq 100 then 'is 100'",                       # returns 'is 100' if true
+    "'not matched!'"                                           # return default value "not matched!"
+]
+```
+
+### Example Choice Usage
+
+```python
+from core.blocks.choice_handler import Choice
+
+# Define complex conditional statements
+choice_statements = [
+    "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 18) then 'minor' else 'adult'",
+    "when $.user.name starts_with 'John' or $.user.name starts_with 'Jane' then 'common_name'",
+    "when $.items contains 'premium' then 'premium_user'", 
+    "when $.price gte 100 then 'expensive_item'",
+    "when not $.discount_applied then 'full_price'",
+    "when $.shopping_cart eq [] then 'empty_cart'",
+    "'default_value'"  # Default fallback
+]
+
+# Create choice state
+choice_state = Choice("price_decision", choice_statements)
+```
 
 ## Architecture
 
 The project is organized into several key components:
 
-- **machine_definition/**: Contains the core state machine implementation
+- **core/**: Contains the core state machine implementation
+  - **state_machine.py**: Main StateMachine class for workflow orchestration
+  - **blocks/**: State handler implementations
+    - **choice_handler.py**: Conditional logic and decision making
+    - **lambda_handler.py**: Lambda function execution
+    - **parallel_handler.py**: Parallel workflow execution
+  - **utils/**: Utility classes and parsers
+    - **parsers.py**: Condition parsing (JSONPath, literals, numbers, lists)
+    - **state_base.py**: Base state class and types
 - **lambdas/**: Directory for lambda function implementations
-- **utils/**: Utility classes for statement evaluation, JSONPath querying, etc.
-- **tests/**: Test cases and examples
-- **machines/**: Pre-defined machine configurations
+- **machines/**: Pre-defined machine configurations and examples
+- **tests/**: Test cases and validation
 
-## Example: Out-of-Machine State Machine
+## Example: Complete State Machine with Choice Logic
 
-Below is an example of a complete state machine defined in `machines/out_of_machine.py`. This state machine demonstrates the use of lambdas, conditional branching, and state transitions:
+Below is an example of a complete state machine defined in `machines/example_machine.py`. This demonstrates the use of Lambda states, Choice states for conditional branching, and Parallel execution:
 
 ```python
-from machine_definition.machine import StateMachine
-from utils.constants import Lambda, IF
-from utils.statement_models import Operator, StatementBuilder, DefaultStatements
+from core.state_machine import StateMachine
+from core.blocks.lambda_handler import Lambda
+from core.blocks.choice_handler import Choice
+from core.blocks.parallel_handler import ParallelHandler
 
-def main():
+def example_machine():
+    """Example showing conditional branching based on input value."""
+    
+    # Define conditional statements for routing
     if__in_or_out__statements = [
-        StatementBuilder()
-            .when("$.value", Operator.GT, 10)
-            .and_when("$.value", Operator.LT, 100)
-            .then("center_state")
-            .build(),
-        DefaultStatements.next_state("outer_state")
+        "when ($.value gt 10) and ($.value lt 53) then 'example/center_state' else 'example/outer_state'"
     ]
 
     machine_tree = [
-        Lambda("center_state", "in_or_out"), # Input First
-        IF("in_or_out", if__in_or_out__statements),
-        Lambda("outer_state", None), # Output!
+        Lambda("example/center_state", "in_or_out"),  # Initial processing
+        Choice("in_or_out", if__in_or_out__statements),  # Conditional routing
+        Lambda("example/outer_state", None),  # Final output state
     ]
 
-    machine = StateMachine("out-of-machine", machine_tree)
-
+    machine = StateMachine("example_machine", machine_tree)
+    
     event = {"value": 50}
-    machine.run(event)
+    result = machine.run(event)
+    return result
+
+def example_parallel_machine():
+    """Example showing parallel execution of workflows."""
+    
+    # Define parallel workflows
+    workflow1 = StateMachine("parallel_workflow1", [
+        Lambda("example/center_state", None, timeout=10)
+    ])
+    
+    workflow2 = StateMachine("parallel_workflow2", [
+        Lambda("example/outer_state", None, timeout=20)
+    ])
+
+    machine_tree = [
+        ParallelHandler(
+            name="Parallel_block",
+            next_state=None,
+            workflows=[workflow1, workflow2]
+        )
+    ]
+
+    machine = StateMachine("example_machine", machine_tree)
+    event = {"value": 50}
+    result = machine.run(event)
+    print(result)  # {'parallel_workflow1': ..., 'parallel_workflow2': ...}
+    return result
 ```
 
-### Explanation
+### Advanced Choice Examples
 
-1. **State Definitions**:
-   - `center_state`: A lambda function that processes the input.
-   - `in_or_out`: A conditional state that evaluates the input value.
-   - `outer_state`: The final state that outputs the result.
+```python
+# Example data structure
+test_data = {
+    "user": {
+        "name": "Jonas Silva",
+        "age": 37,
+        "items": ["apple", "banana"]
+    },
+    "price": 170,
+    "empty_list": []
+}
 
-2. **Conditional Logic**:
-   - If the value is between 10 and 100, the machine transitions to `center_state`.
-   - Otherwise, it transitions to `outer_state`.
+# Complex choice statements
+advanced_statements = [
+    "when ($.user.age gt 36) then 'senior' else when ($.user.age lt 10) then 'children' else 'young'",
+    "when $.user.name starts_with 'João' or $.user.name starts_with 'Jonas' then 'matched name'",
+    "when $.user.items contains 'banana' then 'has banana'",
+    "when $.price gte 100 then 'expensive'",
+    "when (not $.price gte 180) then 'cheaper'", 
+    "when $.empty_list eq [] then 'list is empty'",
+    "'default value'"  # Fallback value
+]
 
-3. **Execution**:
-   - The machine is executed with an input event `{"value": 50}`.
-   - Based on the input, the machine evaluates the conditions and transitions accordingly.
-
-This example showcases the flexibility and power of the state machine framework for orchestrating workflows.
-
-### Clarification
-
-In the example above:
-
-- `statements`: Defined as a list of conditions that determine the state transitions.
-- `machine_tree`: Defined as a list representing the sequence of states in the state machine.
-
-This structure allows for flexibility in defining complex workflows with multiple states and transitions.
+choice_state = Choice("complex_decision", advanced_statements)
+```
 
 ## Future Enhancements
 
-- Parallel execution of states
+- ✅ Parallel execution of machines (implemented via ParallelHandler)
 - State machine visualization
+- Run and forget state
 - Persistence and recovery
 - Monitoring and metrics
 - More complex branching patterns
+- Enhanced error handling and retry mechanisms
 
 ## License
 

@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 
 from core.blocks.parallel_handler import ParallelHandler
 from core.state_machine import StateMachine
-from core.state_base import StateType
+from core.utils.state_base import StateType
 
 
 class TestParallelHandler(unittest.TestCase):

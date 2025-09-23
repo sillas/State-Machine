@@ -4,6 +4,7 @@ from enum import Enum
 
 class StateType(Enum):
     IF = "if_statement"
+    CHOICE = "choice"
     LAMBDA = "lambda"
     PARALLEL = "parallel"
 
