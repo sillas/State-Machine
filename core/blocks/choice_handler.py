@@ -110,7 +110,8 @@ class Choice(State):
                     return result
 
             except Exception as e:
-                # TODO add warning logs
+                logging.warning(
+                    f"Exception occurred while evaluating operation '{ops}': {e}", exc_info=True)
                 continue
 
         return None
@@ -133,7 +134,7 @@ class Choice(State):
         if ' and ' in condition or ' or ' in condition:
             return condition
 
-        # Remove parênteses externos se existirem
+        # Remove external parentheses if they exist
         match = re.search(r'\((.*)\)', condition)
         if match:
             return match.group(1)
