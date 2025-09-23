@@ -3,18 +3,6 @@ import re
 from typing import Any
 from jsonpath_ng import parse
 
-OPERATORS = {
-    ' gt ': lambda l, r: l > r,
-    ' lt ': lambda l, r: l < r,
-    ' eq ': lambda l, r: l == r,
-    ' neq ': lambda l, r: l != r,
-    ' gte ': lambda l, r: l >= r,
-    ' lte ': lambda l, r: l <= r,
-    ' contains ': lambda l, r: r in l,
-    ' starts_with ': lambda l, r: l.startswith(r),
-    ' ends_with ': lambda l, r: l.endswith(r)
-}
-
 
 class ConditionParser(ABC):
     """Interface para parsers de condição."""
@@ -33,6 +21,7 @@ class LiteralStringParser(ConditionParser):
         return "'" in condition
 
     def parse(self, evaluator: 'ConditionalEvaluator', condition: str) -> Any:
+        # Apenas as duas primeiras aspas simples devem ser removidas, as demais devem ser mantias.
         return condition.replace("'", '', 2)
 
 
@@ -80,22 +69,46 @@ class NumberParser(ConditionParser):
 
 
 PARSERS = [
-    LiteralStringParser,
     EmptyListParser,
-    ListParser,
+    LiteralStringParser,
     JsonPathParser,
+    ListParser,
     NumberParser
 ]
+
+OPERATORS = {
+    ' gt ': lambda l, r: l > r,
+    ' lt ': lambda l, r: l < r,
+    ' eq ': lambda l, r: l == r,
+    ' neq ': lambda l, r: l != r,
+    ' gte ': lambda l, r: l >= r,
+    ' lte ': lambda l, r: l <= r,
+    ' contains ': lambda l, r: r in l,
+    ' starts_with ': lambda l, r: l.startswith(r),
+    ' ends_with ': lambda l, r: l.endswith(r)
+}
 
 
 class ConditionalEvaluator:
     """
-    C = $.item (JSONPath) | 'literal string' | literal_number | [] | [C*]
-    op = gt | lt | eq | neq | gte | lte | contains | starts_with | ends_with
-    bool_op = and | or
-    comparison = C op C
-    condition = comparison | condition bool_op condition | not condition | (condition)
-    sttm = [when condition] then [sttm | C else sttm | C]
+    ConditionalEvaluator is a class designed to parse and evaluate conditional expressions over structured data (typically dictionaries or JSON-like objects).
+    Supported Syntax:
+        - term: JSONPath expression (e.g., $.item), literal string, literal number, empty list, or list of C.
+        - op: Comparison operators (gt, lt, eq, neq, gte, lte, contains, starts_with, ends_with).
+        - bool_op: Boolean operators (and, or).
+        - comparison: term op term
+        - condition: comparison | condition bool_op condition | not condition | (condition)
+        - sttm: [when condition] then [sttm | term else sttm | term]
+    Main Methods:
+        - __init__(data): Initializes the evaluator with a data dictionary.
+        - evaluate(operations): Evaluates a list of conditional operation strings, returning the result of the first satisfied condition or None.
+        - _parse_condition(condition): Parses and evaluates a single condition string.
+        - _extract_parentheses_content(condition): Extracts content within parentheses from a condition string.
+        - _jsonpath_query(obj, expr): Executes a JSONPath query on the provided object.
+    Usage:
+        Instantiate with a data dictionary, then call `evaluate()` with a list of conditional statements.
+        The class supports nested conditions, boolean logic, and JSONPath queries for dynamic data extraction.
+        ValueError: For invalid operation formats or empty conditions.
     """
 
     _data = None
@@ -104,6 +117,27 @@ class ConditionalEvaluator:
         self._data = data
 
     def evaluate(self, operations: list[str]) -> Any:
+        """
+        Evaluates a list of conditional operation strings and returns the result based on the first satisfied condition.
+
+        Each operation string can be in the format:
+            - "<condition>"
+            - "when <condition> then <result>"
+            - "when <condition> then <result> else <alternative>"
+
+        The method parses and evaluates each operation in order. If a condition is met, it returns the corresponding result.
+        If an 'else' clause is present and the condition is not met, it evaluates and returns the alternative result.
+        If no conditions are met, returns None.
+
+        Args:
+            operations (list[str]): A list of operation strings to evaluate.
+
+        Returns:
+            Any: The result of the first satisfied condition, or None if no conditions are met.
+
+        Raises:
+            ValueError: If an operation string is in an invalid format.
+        """
 
         for ops in operations:
             sttm_parts = ops.split(' then ', 1)
@@ -116,8 +150,8 @@ class ConditionalEvaluator:
 
                 raise ValueError("Invalid operation format: ", ops)
 
-            left, then = sttm_parts
-            result = self._parse_condition(left.replace("when", '').strip())
+            when, then = sttm_parts
+            result = self._parse_condition(when.replace("when", '').strip())
 
             if result:
                 if ' else ' in then:
@@ -152,8 +186,8 @@ class ConditionalEvaluator:
         if '(' in condition:  # (condition)
             condition = self._extract_parentheses_content(condition)
 
-        if 'not ' in condition:  # not condition
-            not_condition = condition.split('not ')[1]
+        if condition.startswith('not '):  # not condition
+            not_condition = condition[4:].strip()
 
             if not_condition is None or not_condition.strip() == "":
                 raise ValueError(f"Wrong condition value: {not_condition}")
