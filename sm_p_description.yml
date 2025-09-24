@@ -1,0 +1,44 @@
+entry: example-machine
+
+mc_01:
+  name: machine_01
+  lambda_dir: lambdas/example
+
+  tree:
+    center-state: null
+  
+  states:
+    center-state:
+      name: center_state
+      type: lambda 
+
+mc_02:
+  name: machine_02
+  lambda_dir: lambdas/example
+
+  tree:
+    center-state: null
+  
+  states:
+    center-state:
+      name: center_state
+      type: lambda 
+
+example-machine:
+  name: 'example machine'
+  lambda_dir: lambdas/example
+
+  tree:
+    unique: null
+  
+  states:
+    unique:
+      name: unique_state
+      type: parallel
+      workflows:
+        - mc_01
+        - mc_02
+  
+  vars:
+    $ioo-statements:
+      - "when ($.value gt 10) and ($.value lt 53) then #center-state else #outer-state"

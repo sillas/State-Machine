@@ -1,9 +1,10 @@
-from typing import Any
+from typing import Any, Optional
 from pathlib import Path
 import yaml
 
 from core.blocks.choice_handler import Choice
 from core.blocks.lambda_handler import Lambda
+from core.blocks.parallel_handler import ParallelHandler
 from core.state_machine import StateMachine
 from core.utils.state_base import State
 
@@ -72,9 +73,23 @@ def choice_config(this_state: dict[str, Any], next_state: str, vars: dict[str, A
     machine_tree.append(Choice(choice_name, statements))
 
 
-def parse_machine(definition: dict[str, Any]) -> StateMachine:
+def parallel_config(this_state: dict[str, Any], next_state: dict[str, Any] | None, definition: dict[str, Any] | None, machine_tree: list[State]) -> None:
 
-    machine = definition[definition['entry']]
+    if definition is None:
+        raise
+
+    workflows = [
+        parse_machine(definition[w])
+        for w in this_state['workflows']
+    ]
+    machine_tree.append(ParallelHandler(
+        name=this_state['name'],
+        next_state=next_state['name'] if next_state else None,
+        workflows=workflows
+    ))
+
+
+def parse_machine(machine: dict[str, Any], definition: Optional[dict[str, Any]] = None) -> StateMachine:
 
     name = machine['name']
     lambda_dir = machine['lambda_dir']
@@ -112,6 +127,15 @@ def parse_machine(definition: dict[str, Any]) -> StateMachine:
             )
             continue
 
+        if state_type == 'parallel':
+            parallel_config(
+                this_state,
+                states[next_state] if next_state else None,
+                definition,
+                machine_tree
+            )
+            continue
+
     return StateMachine(name, machine_tree)
 
 
@@ -120,7 +144,8 @@ def parser(machines_definitions: str) -> StateMachine | None:
     try:
         with open(machines_definitions, 'r') as file:
             data = yaml.safe_load(file)
-            return parse_machine(data)
+            machine = data[data['entry']]
+            return parse_machine(machine, data)
 
     except FileNotFoundError:
         print(f"Error: {machines_definitions} not found.")
@@ -139,7 +164,7 @@ def parser(machines_definitions: str) -> StateMachine | None:
 
 def main():
 
-    machine = parser('sm_description.yml')
+    machine = parser('sm_p_description.yml')
     if not machine:
         return
 
