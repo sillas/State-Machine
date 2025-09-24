@@ -32,7 +32,7 @@ class Lambda(State):
 
     _handler = None
 
-    def __init__(self, name: str, next_state: str | None, timeout: Optional[int] = None) -> None:
+    def __init__(self, name: str, next_state: str | None, lambda_path: str, timeout: Optional[int] = None) -> None:
         super().__init__(
             name=name,
             next_state=next_state,
@@ -40,7 +40,7 @@ class Lambda(State):
             timeout=timeout
         )
 
-        self._load_lambda()  # pre-load the lambda handler
+        self._load_lambda(lambda_path)  # pre-load the lambda handler
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
         """
@@ -65,11 +65,11 @@ class Lambda(State):
         _handler = self._handler
 
         if _handler is None:
-            _handler = self._load_lambda()
+            raise FileNotFoundError(f"Lambda handler {self.name} not found!")
 
         return _handler(event, context)
 
-    def _load_lambda(self):
+    def _load_lambda(self, lambda_path: str) -> None:
         """
         Loads a lambda handler module dynamically based on the instance's name attribute.
 
@@ -87,12 +87,13 @@ class Lambda(State):
         """
 
         lambda_name = self.name
-        lambda_path = Path(f"lambdas/{lambda_name}/main.py")
+        lambda_file_path = Path(f"/{lambda_path}/{lambda_name}/main.py")
 
-        if not lambda_path.exists():
+        if not lambda_file_path.exists():
             raise ModuleNotFoundError(f"Lambda {lambda_name} não encontrado")
 
-        spec = importlib.util.spec_from_file_location(lambda_name, lambda_path)
+        spec = importlib.util.spec_from_file_location(
+            lambda_name, lambda_file_path)
 
         if spec is None or spec.loader is None:
             raise ImportError(
@@ -103,4 +104,3 @@ class Lambda(State):
 
         handler = module.lambda_handler
         self._handler = handler
-        return handler

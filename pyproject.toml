@@ -8,4 +8,5 @@ dependencies = [
     "jsonpath-ng==1.7.0",
     "ply==3.11",
     "pytest>=8.4.2",
+    "pyyaml>=6.0.2",
 ]
