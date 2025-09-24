@@ -9,73 +9,76 @@ from core.blocks.parallel_handler import Parallel
 from core.state_machine import StateMachine
 
 
-class ConfigHandlers:
+class StateConfigurationProcessor:
 
-    machine_tree = []
+    def __init__(self, state_definitions: dict[str, Any], variables: dict[str, Any] | None, lambda_directory: str) -> None:
+        self.execution_blocks = []
+        self.variables = variables if variables else {}
+        self.state_definitions = state_definitions
+        self.lambda_directory = lambda_directory
 
-    def __init__(self, states: dict[str, Any], vars: dict[str, Any] | None, lambda_dir: str) -> None:
-        self.vars = vars if vars else {}
-        self.states = states
-        self.lambda_dir = lambda_dir
+    def set_state(self, current_state_key: str, next_state_key: str | None) -> None:
+        self.this_state = self.state_definitions[current_state_key]
+        self.next_state = self.state_definitions.get(next_state_key or '')
 
-    def set_state(self, this_state: str, next_state: str | None) -> None:
-        self.this_state = self.states[this_state]
-        self.next_state = self.states.get(next_state or '')
+    def _process_lambda_state(self) -> None:
 
-    def _lambda(self) -> None:
-
-        name = self.this_state['name']
-        lambda_full_path = f"{self.lambda_dir}/{name}/main.py"
+        state_name = self.this_state['name']
+        lambda_full_path = f"{self.lambda_directory}/{state_name}/main.py"
         lambda_file_path = Path(lambda_full_path)
 
         if not lambda_file_path.exists():
             raise ModuleNotFoundError(
                 f"Lambda {lambda_full_path} não encontrado.")
 
-        config: dict[str, Any] = {
-            "name": name,
+        lambda_config: dict[str, Any] = {
+            "name": state_name,
             "next_state": self.next_state['name'] if self.next_state else None,
-            "lambda_path": self.lambda_dir,
+            "lambda_path": self.lambda_directory,
         }
 
-        timeout = self.this_state.get('timeout')
+        timeout_value = self.this_state.get('timeout')
 
-        if timeout:
-            config['timeout'] = int(timeout)
+        if timeout_value:
+            lambda_config['timeout'] = int(timeout_value)
 
-        self.machine_tree.append(Lambda(**config))
+        self.execution_blocks.append(Lambda(**lambda_config))
 
-    def _choice(self, conditions: str) -> None:
+    def _process_choice_state(self, conditions: str) -> None:
 
         choice_name = self.this_state['name']
-        conditions_list = self.vars.get(conditions)
+        conditions_list = self.variables.get(conditions)
 
         if conditions_list is None:
             raise ValueError(
                 f"conditions for choice {choice_name} does not exist!")
 
         for i in range(len(conditions_list)):
-            words = self._extract_hash_words(conditions_list[i])
-            for w in words:
-                nn = self.states[w[1:]]['name']
-                conditions_list[i] = conditions_list[i].replace(w, f"'{nn}'")
+            hash_words = self._extract_hash_words(conditions_list[i])
+            for word in hash_words:
+                state_name = self.state_definitions[word[1:]]['name']
+                conditions_list[i] = conditions_list[i].replace(
+                    word, f"'{state_name}'")
 
-        self.machine_tree.append(Choice(choice_name, conditions_list))
+        self.execution_blocks.append(Choice(choice_name, conditions_list))
 
-    def _parallel(self, parse_machine: Callable, machines_def: dict[str, Any] | None) -> None:
+    def _process_parallel_state(self, parse_machine: Callable, machine_definitions: dict[str, Any] | None) -> None:
 
-        if machines_def is None:
+        if machine_definitions is None:
             raise
 
         workflows = [
-            parse_machine(machines_def[w])
-            for w in self.this_state['workflows']
+            parse_machine(machine_definitions[workflow])
+            for workflow in self.this_state['workflows']
         ]
-        self.machine_tree.append(Parallel(
-            name=self.this_state['name'],
-            next_state=self.next_state['name'] if self.next_state else None,
-            workflows=workflows
-        ))
+
+        parallel_conf = {
+            "name": self.this_state['name'],
+            "next_state": self.next_state['name'] if self.next_state else None,
+            "workflows": workflows
+        }
+
+        self.execution_blocks.append(Parallel(**parallel_conf))
 
     def _extract_hash_words(self, text: str) -> list[str]:
         import re
@@ -84,37 +87,37 @@ class ConfigHandlers:
         return matches
 
 
-class MachineParser:
+class StateMachineParser:
 
     data: dict[str, Any]
     machine: dict[str, Any]
 
-    def __init__(self, machines_definitions: str) -> None:
+    def __init__(self, machine_definitions_file: str) -> None:
 
-        data = self._load_data(machines_definitions)
+        data = self._load_data(machine_definitions_file)
         self.machine = data[data['entry']]
         self.data = data
 
-    def parser(self) -> StateMachine:
+    def parse(self) -> StateMachine:
         return self.parse_machine(self.machine)
 
-    def parse_machine(self, machine) -> StateMachine:
+    def parse_machine(self, machine_config) -> StateMachine:
 
-        name = machine['name']
-        tree = machine['tree']
+        name = machine_config['name']
+        execution_tree = machine_config['tree']
 
-        configs = ConfigHandlers(
-            states=machine['states'],
-            vars=machine.get('vars'),
-            lambda_dir=machine['lambda_dir']
+        state_processor = StateConfigurationProcessor(
+            state_definitions=machine_config['states'],
+            variables=machine_config.get('vars'),
+            lambda_directory=machine_config['lambda_dir']
         )
 
-        for this_state, next_state in tree.items():
-            configs.set_state(this_state, next_state)
+        for current_state, next_state in execution_tree.items():
+            state_processor.set_state(current_state, next_state)
 
-            state_type = configs.this_state['type']
+            state_type = state_processor.this_state['type']
 
-            method = getattr(configs, f"_{state_type}")
+            method = getattr(state_processor, f"_process_{state_type}_state")
 
             if state_type == 'lambda':
                 method()
@@ -125,15 +128,15 @@ class MachineParser:
             elif state_type == 'parallel':
                 method(self.parse_machine, self.data)
 
-        return StateMachine(name, configs.machine_tree)
+        return StateMachine(name, state_processor.execution_blocks)
 
-    def _load_data(self, machines_definitions: str):
+    def _load_data(self, machine_definitions_file: str):
         try:
-            with open(machines_definitions, 'r') as file:
+            with open(machine_definitions_file, 'r') as file:
                 return yaml.safe_load(file)
 
         except FileNotFoundError:
-            print(f"Error: {machines_definitions} not found.")
+            print(f"Error: {machine_definitions_file} not found.")
 
         except yaml.YAMLError as e:
             print(f"Error parsing YAML: {e}")
@@ -149,8 +152,8 @@ class MachineParser:
 
 def use_example_parallel():
 
-    parser_handler = MachineParser('sm_p_description.yml')
-    machine = parser_handler.parser()
+    parser_handler = StateMachineParser('sm_p_description.yml')
+    machine = parser_handler.parse()
 
     if not machine:
         return
@@ -162,15 +165,15 @@ def use_example_parallel():
 
 def use_example():
 
-    parser_handler = MachineParser('sm_description.yml')
-    machine = parser_handler.parser()
+    parser_handler = StateMachineParser('sm_description.yml')
+    machine = parser_handler.parse()
 
     if not machine:
         return
 
     event: dict[str, int] = {"value": 50}
     result = machine.run(event)
-    print(result)
+    print("RESULT: ", result)
 
 
 if __name__ == "__main__":

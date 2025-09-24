@@ -17,11 +17,11 @@ mc_02:
   lambda_dir: lambdas/example
 
   tree:
-    center-state: null
+    outer-state: null
   
   states:
-    center-state:
-      name: center_state
+    outer-state:
+      name: outer_state
       type: lambda 
 
 example-machine:
