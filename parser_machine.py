@@ -15,14 +15,20 @@ logger = logging.getLogger(__name__)
 
 
 class StateConfigurationProcessor:
+    """
+    Processes state configurations and builds execution blocks for a state machine.
+    Handles lambda, choice, and parallel states, managing variables and state transitions.
+    """
 
     def __init__(self, state_definitions: dict[str, Any], variables: dict[str, Any] | None, lambda_directory: str) -> None:
+        """Initialize the processor with state definitions, variables, and lambda directory."""
         self.execution_blocks = []
         self.variables = variables if variables else {}
         self.state_definitions = state_definitions
         self.lambda_directory = lambda_directory
 
     def set_state(self, current_state_key: str, next_state_key: str | None) -> None:
+        """Set the current and next state based on provided keys."""
         try:
             self.this_state = self.state_definitions[current_state_key]
             self.next_state = self.state_definitions.get(next_state_key or '')
@@ -31,15 +37,16 @@ class StateConfigurationProcessor:
             raise
 
     def _process_lambda_state(self) -> None:
+        """Process a lambda state and append it to execution blocks."""
         try:
             state_name = self.this_state['name']
             lambda_full_path = f"{self.lambda_directory}/{state_name}/main.py"
             lambda_file_path = Path(lambda_full_path)
 
             if not lambda_file_path.exists():
-                logger.error(f"Lambda {lambda_full_path} não encontrado.")
+                logger.error(f"Lambda {lambda_full_path} not found.")
                 raise ModuleNotFoundError(
-                    f"Lambda {lambda_full_path} não encontrado.")
+                    f"Lambda {lambda_full_path} not found.")
 
             lambda_config: dict[str, Any] = {
                 "name": state_name,
@@ -58,15 +65,16 @@ class StateConfigurationProcessor:
             raise
 
     def _process_choice_state(self, conditions: str) -> None:
+        """Process a choice state and append it to execution blocks."""
         try:
             choice_name = self.this_state['name']
             conditions_list = self.variables.get(conditions)
 
             if conditions_list is None:
                 logger.error(
-                    f"conditions for choice {choice_name} does not exist!")
+                    f"Conditions for choice {choice_name} do not exist!")
                 raise ValueError(
-                    f"conditions for choice {choice_name} does not exist!")
+                    f"Conditions for choice {choice_name} do not exist!")
 
             for i in range(len(conditions_list)):
                 hash_words = self._extract_hash_words(conditions_list[i])
@@ -82,6 +90,7 @@ class StateConfigurationProcessor:
             raise
 
     def _process_parallel_state(self, parse_machine: Callable, machine_definitions: dict[str, Any] | None) -> None:
+        """Process a parallel state and append it to execution blocks."""
         try:
             if machine_definitions is None:
                 logger.error("machine_definitions is None in parallel state.")
@@ -106,6 +115,7 @@ class StateConfigurationProcessor:
             raise
 
     def _extract_hash_words(self, text: str) -> list[str]:
+        """Extract hash words (e.g., #state) from a string."""
         import re
         pattern = r'#\w+(?:-\w+)*'
         matches = re.findall(pattern, text)
@@ -113,11 +123,16 @@ class StateConfigurationProcessor:
 
 
 class StateMachineParser:
+    """
+    Parses a state machine definition from a YAML file and constructs a StateMachine object.
+    Handles loading, parsing, and building the execution tree for the state machine.
+    """
 
     data: dict[str, Any]
     machine: dict[str, Any]
 
     def __init__(self, machine_definitions_file: str) -> None:
+        """Initialize the parser with the path to the machine definitions YAML file."""
         try:
             data = self._load_data(machine_definitions_file)
             self.machine = data[data['entry']]
@@ -129,6 +144,7 @@ class StateMachineParser:
             raise
 
     def parse(self) -> StateMachine:
+        """Parse the loaded machine definition and return a StateMachine object."""
         try:
             return self.parse_machine(self.machine)
         except Exception as e:
@@ -136,6 +152,7 @@ class StateMachineParser:
             raise
 
     def parse_machine(self, machine_config) -> StateMachine:
+        """Parse a machine configuration and return a StateMachine object."""
         try:
             name = machine_config['name']
             execution_tree = machine_config['tree']
@@ -170,6 +187,7 @@ class StateMachineParser:
             raise
 
     def _load_data(self, machine_definitions_file: str):
+        """Load and return data from the given machine definitions YAML file."""
         try:
             with open(machine_definitions_file, 'r') as file:
                 return yaml.safe_load(file)
@@ -188,6 +206,7 @@ class StateMachineParser:
 
 
 def use_example_parallel():
+    """Run the example parallel state machine with a sample event."""
 
     parser_handler = StateMachineParser('sm_p_description.yml')
     machine = parser_handler.parse()
@@ -201,6 +220,7 @@ def use_example_parallel():
 
 
 def use_example():
+    """Run the example serial state machine with a sample event."""
 
     parser_handler = StateMachineParser('sm_description.yml')
     machine = parser_handler.parse()
