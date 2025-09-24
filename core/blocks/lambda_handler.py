@@ -87,10 +87,12 @@ class Lambda(State):
         """
 
         lambda_name = self.name
-        lambda_file_path = Path(f"/{lambda_path}/{lambda_name}/main.py")
+        full_path = f"{lambda_path}/{lambda_name}/main.py"
+        lambda_file_path = Path(full_path)
 
         if not lambda_file_path.exists():
-            raise ModuleNotFoundError(f"Lambda {lambda_name} não encontrado")
+            raise ModuleNotFoundError(
+                f"Lambda {full_path} não encontrado")
 
         spec = importlib.util.spec_from_file_location(
             lambda_name, lambda_file_path)
