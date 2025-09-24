@@ -4,6 +4,24 @@ import yaml
 from core.blocks.lambda_handler import Lambda
 
 
+def lambda_config(this_state, next_state, lambda_dir, machine_tree) -> None:
+
+    name = this_state['name']
+
+    cofig: dict[str, Any] = {
+        "name": name,
+        "next_state": next_state['name'],
+        "lambda_path": f"{lambda_dir}/{name}",
+    }
+
+    timeout = this_state.get('timeout')
+
+    if timeout:
+        cofig['timeout'] = int(timeout)
+
+    machine_tree.append(Lambda(**cofig))
+
+
 def parse_machine(machine: dict):
 
     name = machine['name']
@@ -15,24 +33,30 @@ def parse_machine(machine: dict):
     machine_tree = []
 
     for state, next_state in tree.items():
-        state_def = states[state]
+        this_state = states[state]
 
-        if state_def['type'] == 'lambda':
+        if this_state['type'] == 'lambda':
+            lambda_config(
+                this_state,
+                states[next_state],
+                lambda_dir,
+                machine_tree
+            )
 
-            next_state = states[next_state]['name']
+            # next_state = states[next_state]['name']
 
-            cofig: dict[str, Any] = {
-                "name": name,
-                "next_state": next_state,
-                "lambda_path": f"{lambda_dir}/{name}",
-            }
+            # cofig: dict[str, Any] = {
+            #     "name": state_def['name'],
+            #     "next_state": next_state,
+            #     "lambda_path": f"{lambda_dir}/{name}",
+            # }
 
-            timeout = state_def.get('timeout')
+            # timeout = state_def.get('timeout')
 
-            if timeout:
-                cofig['timeout'] = int(timeout)
+            # if timeout:
+            #     cofig['timeout'] = int(timeout)
 
-            machine_tree.append(Lambda(**cofig))
+            # machine_tree.append(Lambda(**cofig))
             continue
 
 
