@@ -3,7 +3,7 @@ from time import sleep
 from core.blocks.choice_handler import Choice
 from core.state_machine import StateMachine
 from core.blocks.lambda_handler import Lambda
-from core.blocks.parallel_handler import ParallelHandler
+from core.blocks.parallel_handler import Parallel
 
 
 def example_parallel_machine():
@@ -18,7 +18,7 @@ def example_parallel_machine():
     ])
 
     machine_tree = [
-        ParallelHandler(
+        Parallel(
             name="Parallel_block",
             next_state=None,
             workflows=[workflow1, workflow2]

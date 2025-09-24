@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0-alpha] - 2025-09-18
 
 ### Added
-- New parallel execution block feature through `ParallelHandler` class
+- New parallel execution block feature through `Parallel` class
   - Allows running multiple state machine workflows concurrently
   - Automatically calculates and manages timeouts based on child workflows
   - Collects and aggregates results from all parallel workflows

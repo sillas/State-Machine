@@ -2,13 +2,13 @@ import unittest
 import concurrent.futures
 from unittest.mock import patch, MagicMock
 
-from core.blocks.parallel_handler import ParallelHandler
+from core.blocks.parallel_handler import Parallel
 from core.state_machine import StateMachine
 from core.utils.state_base import StateType
 
 
-class TestParallelHandler(unittest.TestCase):
-    """Test cases for the ParallelHandler class."""
+class TestParallel(unittest.TestCase):
+    """Test cases for the Parallel class."""
 
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -27,15 +27,15 @@ class TestParallelHandler(unittest.TestCase):
             self.mock_workflow2
         ]
 
-        # Create an instance of ParallelHandler for tests
-        self.parallel_handler = ParallelHandler(
+        # Create an instance of Parallel for tests
+        self.parallel_handler = Parallel(
             name="test_parallel",
             next_state="next_state",
             workflows=self.workflows
         )
 
     def test_initialization(self):
-        """Test ParallelHandler initialization and parameter validation."""
+        """Test Parallel initialization and parameter validation."""
         # Verify attributes are correctly initialized
         self.assertEqual(self.parallel_handler.name, "test_parallel")
         self.assertEqual(self.parallel_handler.type, StateType.PARALLEL.value)

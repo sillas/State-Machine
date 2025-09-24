@@ -12,7 +12,7 @@ This project provides a state machine framework that allows you to define, execu
 
 - **Lambda-based Architecture**: Define reusable function handlers that perform specific tasks in your workflow
 - **Powerful Choice Logic**: Natural language-like conditional statements with JSONPath support
-- **Parallel Execution**: Run multiple workflows concurrently with ParallelHandler
+- **Parallel Execution**: Run multiple workflows concurrently with Parallel
 - **Advanced Condition Parsing**: Support for strings, numbers, lists, JSONPath expressions, and boolean logic
 - **Flexible State Transitions**: Define complex state transitions based on dynamic conditions
 - **Timeout Handling**: Built-in timeout protection for long-running workflows and individual states
@@ -161,7 +161,7 @@ Below is an example of a complete state machine defined in `machines/example_mac
 from core.state_machine import StateMachine
 from core.blocks.lambda_handler import Lambda
 from core.blocks.choice_handler import Choice
-from core.blocks.parallel_handler import ParallelHandler
+from core.blocks.parallel_handler import Parallel
 
 def example_machine():
     """Example showing conditional branching based on input value."""
@@ -196,7 +196,7 @@ def example_parallel_machine():
     ])
 
     machine_tree = [
-        ParallelHandler(
+        Parallel(
             name="Parallel_block",
             next_state=None,
             workflows=[workflow1, workflow2]
@@ -240,7 +240,7 @@ choice_state = Choice("complex_decision", advanced_statements)
 
 ## Future Enhancements
 
-- ✅ Parallel execution of machines (implemented via ParallelHandler)
+- ✅ Parallel execution of machines (implemented via Parallel)
 - State machine visualization
 - Run and forget state
 - Persistence and recovery
