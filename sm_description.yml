@@ -1,7 +1,8 @@
+entry: example-machine
 
 example-machine:
   name: 'example machine'
-  lambda_dir: lambda/example
+  lambda_dir: lambdas/example
 
   tree:
     center-state: in-or-out

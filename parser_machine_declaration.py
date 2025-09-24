@@ -5,21 +5,44 @@ import yaml
 from core.blocks.choice_handler import Choice
 from core.blocks.lambda_handler import Lambda
 from core.state_machine import StateMachine
+from core.utils.state_base import State
 
 
-def lambda_config(this_state, next_state, lambda_dir, machine_tree) -> None:
+def extract_hash_words(text: str) -> list[str]:
+    """
+    Extrai todas as palavras que começam com '#' de uma string.
+
+    Args:
+        text (str): A string de entrada
+
+    Returns:
+        list[str]: Lista com todas as palavras que começam com '#'
+    """
+    import re
+
+    # Padrão regex para capturar palavras que começam com '#'
+    # \# - corresponde ao caractere '#' literal
+    # \w+ - corresponde a uma ou mais letras, dígitos ou underscore
+    # \b - boundary word (garante que pegue palavras completas)
+    pattern = r'#\w+(?:-\w+)*'
+
+    matches = re.findall(pattern, text)
+    return matches
+
+
+def lambda_config(this_state: dict[str, Any], next_state: dict[str, Any] | None, lambda_dir: str, machine_tree: list[State]) -> None:
 
     name = this_state['name']
-    lambda_path = f"/{lambda_dir}/{name}"
-    lambda_file_path = Path(f"{lambda_path}/main.py")
+    lambda_full_path = f"{lambda_dir}/{name}/main.py"
+    lambda_file_path = Path(lambda_full_path)
 
     if not lambda_file_path.exists():
-        raise ModuleNotFoundError(f"Lambda {lambda_path} não encontrado.")
+        raise ModuleNotFoundError(f"Lambda {lambda_full_path} não encontrado.")
 
     cofig: dict[str, Any] = {
         "name": name,
-        "next_state": next_state['name'],
-        "lambda_path": lambda_path,
+        "next_state": next_state['name'] if next_state else None,
+        "lambda_path": lambda_dir,
     }
 
     timeout = this_state.get('timeout')
@@ -30,7 +53,7 @@ def lambda_config(this_state, next_state, lambda_dir, machine_tree) -> None:
     machine_tree.append(Lambda(**cofig))
 
 
-def choice_config(this_state, next_state, vars, machine_tree):
+def choice_config(this_state: dict[str, Any], next_state: str, vars: dict[str, Any], states: dict[str, Any], machine_tree: list[State]) -> None:
 
     choice_name = this_state['name']
     statements = vars.get(next_state)
@@ -39,10 +62,19 @@ def choice_config(this_state, next_state, vars, machine_tree):
         raise ValueError(
             f"statements for choice {choice_name} does not exist!")
 
+    print('---')
+    for i in range(len(statements)):
+        words = extract_hash_words(statements[i])
+        for w in words:
+            statements[i] = statements[i].replace(
+                w, f"'{states[w[1:]]['name']}'")
+
     machine_tree.append(Choice(choice_name, statements))
 
 
-def parse_machine(machine: dict) -> StateMachine:
+def parse_machine(definition: dict[str, Any]) -> StateMachine:
+
+    machine = definition[definition['entry']]
 
     name = machine['name']
     lambda_dir = machine['lambda_dir']
@@ -60,7 +92,7 @@ def parse_machine(machine: dict) -> StateMachine:
         if state_type == 'lambda':
             lambda_config(
                 this_state,
-                states[next_state],
+                states[next_state] if next_state else None,
                 lambda_dir,
                 machine_tree
             )
@@ -75,6 +107,7 @@ def parse_machine(machine: dict) -> StateMachine:
                 this_state,
                 next_state,
                 vars,
+                states,
                 machine_tree
             )
             continue
@@ -82,14 +115,12 @@ def parse_machine(machine: dict) -> StateMachine:
     return StateMachine(name, machine_tree)
 
 
-def parser(machines_definitions: str):
+def parser(machines_definitions: str) -> StateMachine | None:
 
     try:
         with open(machines_definitions, 'r') as file:
             data = yaml.safe_load(file)
-
-            for key in data.keys():
-                return parse_machine(data[key])
+            return parse_machine(data)
 
     except FileNotFoundError:
         print(f"Error: {machines_definitions} not found.")
@@ -97,6 +128,25 @@ def parser(machines_definitions: str):
     except yaml.YAMLError as e:
         print(f"Error parsing YAML: {e}")
 
+    except KeyError as e:
+        print(f"Key error! {str(e)}")
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+
+    return None
+
+
+def main():
+
+    machine = parser('sm_description.yml')
+    if not machine:
+        return
+
+    event: dict[str, int] = {"value": 50}
+    result = machine.run(event)
+    print(result)
+
 
 if __name__ == "__main__":
-    parser('sm_description.yml')
+    main()
