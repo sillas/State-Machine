@@ -26,243 +26,205 @@ HASH_WORD_PATTERN = r'#\w+(?:-\w+)*'
 SUPPORTED_STATE_TYPES = {'lambda', 'choice', 'parallel'}
 
 
-def extract_hash_words(text: str) -> list[str]:
-    """
-    Extract all words that start with '#' from a string.
+class StateReferenceResolver:
+    """Handles resolution of state references in statements."""
 
-    This function is used to identify state references in statement strings,
-    which are prefixed with '#' in the YAML configuration.
+    def __init__(self, states: dict[str, Any]):
+        self.states = states
 
-    Args:
-        text (str): The input string to search for hash words
+    def extract_hash_words(self, text: str) -> list[str]:
+        """Extract all words that start with '#' from a string."""
+        if not text:
+            return []
+        return re.findall(HASH_WORD_PATTERN, text)
 
-    Returns:
-        list[str]: List of all words that start with '#'
+    def replace_state_references(self, statement: str) -> str:
+        """Replace hash words in a statement with actual state names."""
+        processed_statement = statement
+        hash_words = self.extract_hash_words(statement)
 
-    Example:
-        >>> extract_hash_words("when $.value > 10 then #state-1 else #state-2")
-        ['#state-1', '#state-2']
-    """
-    if not text:
-        return []
+        for hash_word in hash_words:
+            state_key = hash_word[1:]  # Remove the '#' prefix
+            if state_key not in self.states:
+                raise KeyError(
+                    f"State '{state_key}' referenced in statement but not defined")
 
-    matches = re.findall(HASH_WORD_PATTERN, text)
-    return matches
+            state_name = self.states[state_key]['name']
+            processed_statement = processed_statement.replace(
+                hash_word, f"'{state_name}'")
 
-
-def _configure_lambda_state(
-    current_state: dict[str, Any],
-    next_state: dict[str, Any] | None,
-    lambda_dir: str,
-    machine_tree: list[State]
-) -> None:
-    """
-    Configure a lambda state and add it to the machine tree.
-
-    Args:
-        current_state (dict): The current state configuration
-        next_state (dict, optional): The next state configuration
-        lambda_dir (str): Directory path containing lambda functions
-        machine_tree (list[State]): The machine tree to append the state to
-
-    Raises:
-        ModuleNotFoundError: If the lambda file doesn't exist
-        KeyError: If required configuration keys are missing
-    """
-    state_name = current_state['name']
-    lambda_full_path = f"{lambda_dir}/{state_name}/main.py"
-    lambda_file_path = Path(lambda_full_path)
-
-    if not lambda_file_path.exists():
-        raise ModuleNotFoundError(f"Lambda file not found: {lambda_full_path}")
-
-    config: dict[str, Any] = {
-        "name": state_name,
-        "next_state": next_state['name'] if next_state else None,
-        "lambda_path": lambda_dir,
-    }
-
-    # Add optional timeout configuration
-    timeout = current_state.get('timeout')
-    if timeout is not None:
-        try:
-            config['timeout'] = int(timeout)
-        except (ValueError, TypeError) as e:
-            logger.warning(
-                f"Invalid timeout value for state {state_name}: {timeout}")
-            raise ValueError(f"Invalid timeout value: {timeout}") from e
-
-    machine_tree.append(Lambda(**config))
+        return processed_statement
 
 
-def _configure_choice_state(
-    current_state: dict[str, Any],
-    next_state_key: str,
-    variables: dict[str, Any],
-    states: dict[str, Any],
-    machine_tree: list[State]
-) -> None:
-    """
-    Configure a choice state and add it to the machine tree.
+class StateConfigurationBuilder:
+    """Builds state configurations for different state types."""
 
-    Args:
-        current_state (dict): The current state configuration
-        next_state_key (str): Key to lookup the statements in variables
-        variables (dict): Dictionary containing statement definitions
-        states (dict): Dictionary of all state definitions
-        machine_tree (list[State]): The machine tree to append the state to
+    def __init__(self, states: dict[str, Any], machine_tree: list[State]):
+        self.states = states
+        self.machine_tree = machine_tree
+        self.reference_resolver = StateReferenceResolver(states)
 
-    Raises:
-        ValueError: If statements are not found or state references are invalid
-    """
-    choice_name = current_state['name']
-    statements = variables.get(next_state_key)
+    def configure_lambda_state(self, current_state: dict[str, Any],
+                               next_state: dict[str, Any] | None, lambda_dir: str) -> None:
+        """Configure a lambda state and add it to the machine tree."""
+        state_name = current_state['name']
+        lambda_full_path = f"{lambda_dir}/{state_name}/main.py"
+        lambda_file_path = Path(lambda_full_path)
 
-    if statements is None:
-        raise ValueError(
-            f"Statements for choice '{choice_name}' not found in variables")
+        if not lambda_file_path.exists():
+            raise ModuleNotFoundError(
+                f"Lambda file not found: {lambda_full_path}")
 
-    logger.debug(f"Processing choice state: {choice_name}")
+        config: dict[str, Any] = {
+            "name": state_name,
+            "next_state": next_state['name'] if next_state else None,
+            "lambda_path": lambda_dir,
+        }
 
-    # Process each statement to replace hash words with actual state names
-    processed_statements = []
-    for statement in statements:
-        processed_statement = _replace_state_references(statement, states)
-        processed_statements.append(processed_statement)
+        # Add optional timeout configuration
+        timeout = current_state.get('timeout')
+        if timeout is not None:
+            try:
+                config['timeout'] = int(timeout)
+            except (ValueError, TypeError) as e:
+                logger.warning(
+                    f"Invalid timeout value for state {state_name}: {timeout}")
+                raise ValueError(f"Invalid timeout value: {timeout}") from e
 
-    machine_tree.append(Choice(choice_name, processed_statements))
+        self.machine_tree.append(Lambda(**config))
 
+    def configure_choice_state(self, current_state: dict[str, Any],
+                               next_state_key: str, variables: dict[str, Any]) -> None:
+        """Configure a choice state and add it to the machine tree."""
+        choice_name = current_state['name']
+        statements = variables.get(next_state_key)
 
-def _replace_state_references(statement: str, states: dict[str, Any]) -> str:
-    """
-    Replace hash words in a statement with actual state names.
-
-    Args:
-        statement (str): The statement containing hash words
-        states (dict): Dictionary of state definitions
-
-    Returns:
-        str: Statement with hash words replaced by quoted state names
-
-    Raises:
-        KeyError: If a referenced state is not found
-    """
-    processed_statement = statement
-    hash_words = extract_hash_words(statement)
-
-    for hash_word in hash_words:
-        state_key = hash_word[1:]  # Remove the '#' prefix
-        if state_key not in states:
-            raise KeyError(
-                f"State '{state_key}' referenced in statement but not defined")
-
-        state_name = states[state_key]['name']
-        processed_statement = processed_statement.replace(
-            hash_word, f"'{state_name}'")
-
-    return processed_statement
-
-
-def _configure_parallel_state(
-    current_state: dict[str, Any],
-    next_state: dict[str, Any] | None,
-    definition: dict[str, Any] | None,
-    machine_tree: list[State]
-) -> None:
-    """
-    Configure a parallel state and add it to the machine tree.
-
-    Args:
-        current_state (dict): The current state configuration
-        next_state (dict, optional): The next state configuration
-        definition (dict, optional): The full machine definition containing workflows
-        machine_tree (list[State]): The machine tree to append the state to
-
-    Raises:
-        ValueError: If definition is None or workflows are not properly defined
-    """
-    if definition is None:
-        raise ValueError("Machine definition is required for parallel states")
-
-    if 'workflows' not in current_state:
-        raise ValueError(
-            f"Parallel state '{current_state['name']}' must define workflows")
-
-    try:
-        workflows = [
-            parse_machine(definition[workflow_name])
-            for workflow_name in current_state['workflows']
-        ]
-    except KeyError as e:
-        raise ValueError(f"Workflow definition not found: {e}") from e
-
-    machine_tree.append(ParallelHandler(
-        name=current_state['name'],
-        next_state=next_state['name'] if next_state else None,
-        workflows=workflows
-    ))
-
-
-def parse_machine(machine: dict[str, Any], definition: Optional[dict[str, Any]] = None) -> StateMachine:
-    """
-    Parse a machine configuration and create a StateMachine object.
-
-    Args:
-        machine (dict): The machine configuration dictionary
-        definition (dict, optional): The full definition containing all machines
-
-    Returns:
-        StateMachine: The parsed state machine
-
-    Raises:
-        ValueError: If required configuration is missing or invalid
-        KeyError: If referenced states are not found
-    """
-    # Validate required fields
-    required_fields = ['name', 'lambda_dir', 'tree', 'states']
-    for field in required_fields:
-        if field not in machine:
+        if statements is None:
             raise ValueError(
-                f"Missing required field in machine configuration: {field}")
+                f"Statements for choice '{choice_name}' not found in variables")
 
-    machine_name = machine['name']
-    lambda_dir = machine['lambda_dir']
-    state_tree = machine['tree']
-    states = machine['states']
-    variables = machine.get('vars')
+        logger.debug(f"Processing choice state: {choice_name}")
 
-    logger.info(f"Parsing machine: {machine_name}")
-    machine_tree = []
+        # Process each statement to replace hash words with actual state names
+        processed_statements = []
+        for statement in statements:
+            processed_statement = self.reference_resolver.replace_state_references(
+                statement)
+            processed_statements.append(processed_statement)
 
-    for state_key, next_state_key in state_tree.items():
-        if state_key not in states:
+        self.machine_tree.append(Choice(choice_name, processed_statements))
+
+    def configure_parallel_state(self, current_state: dict[str, Any],
+                                 next_state: dict[str, Any] | None,
+                                 definition: dict[str, Any]) -> None:
+        """Configure a parallel state and add it to the machine tree."""
+        if 'workflows' not in current_state:
+            raise ValueError(
+                f"Parallel state '{current_state['name']}' must define workflows")
+
+        try:
+            workflows = [
+                MachineParser.parse_machine(
+                    definition[workflow_name], definition)
+                for workflow_name in current_state['workflows']
+            ]
+        except KeyError as e:
+            raise ValueError(f"Workflow definition not found: {e}") from e
+
+        self.machine_tree.append(ParallelHandler(
+            name=current_state['name'],
+            next_state=next_state['name'] if next_state else None,
+            workflows=workflows
+        ))
+
+
+class MachineParser:
+    """Main parser class for state machine definitions."""
+
+    def __init__(self, machine_config: dict[str, Any], definition: Optional[dict[str, Any]] = None):
+        self.machine_config = machine_config
+        self.definition = definition
+        self.machine_name = machine_config['name']
+        self.lambda_dir = machine_config['lambda_dir']
+        self.state_tree = machine_config['tree']
+        self.states = machine_config['states']
+        self.variables = machine_config.get('vars')
+        self.machine_tree: list[State] = []
+
+        self._validate_config()
+        self.state_builder = StateConfigurationBuilder(
+            self.states, self.machine_tree)
+
+    def _validate_config(self) -> None:
+        """Validate the machine configuration."""
+        required_fields = ['name', 'lambda_dir', 'tree', 'states']
+        for field in required_fields:
+            if field not in self.machine_config:
+                raise ValueError(
+                    f"Missing required field in machine configuration: {field}")
+
+    def _get_next_state(self, next_state_key: str | None) -> dict[str, Any] | None:
+        """Get the next state configuration."""
+        return self.states.get(next_state_key) if next_state_key else None
+
+    def _validate_state_reference(self, state_key: str) -> None:
+        """Validate that a state key exists in the configuration."""
+        if state_key not in self.states:
             raise KeyError(
                 f"State '{state_key}' referenced in tree but not defined in states")
 
-        current_state = states[state_key]
-        state_type = current_state.get('type')
-
+    def _validate_state_type(self, state_type: str) -> None:
+        """Validate that a state type is supported."""
         if state_type not in SUPPORTED_STATE_TYPES:
             raise ValueError(f"Unsupported state type: {state_type}")
 
-        next_state = states.get(next_state_key) if next_state_key else None
+    def _process_state(self, state_key: str, next_state_key: str | None) -> None:
+        """Process a single state configuration."""
+        self._validate_state_reference(state_key)
+
+        current_state = self.states[state_key]
+        state_type = current_state.get('type')
+        self._validate_state_type(state_type)
+
+        next_state = self._get_next_state(next_state_key)
 
         if state_type == 'lambda':
-            _configure_lambda_state(
-                current_state, next_state, lambda_dir, machine_tree)
-        elif state_type == 'choice':
-            if variables is None:
-                raise ValueError(
-                    f"Variables are required for machine '{machine_name}' with choice states")
-            _configure_choice_state(
-                current_state, next_state_key, variables, states, machine_tree)
-        elif state_type == 'parallel':
-            _configure_parallel_state(
-                current_state, next_state, definition, machine_tree)
+            self.state_builder.configure_lambda_state(
+                current_state, next_state, self.lambda_dir)
 
-    logger.info(
-        f"Successfully parsed machine '{machine_name}' with {len(machine_tree)} states")
-    return StateMachine(machine_name, machine_tree)
+        elif state_type == 'choice':
+            if self.variables is None:
+                raise ValueError(
+                    f"Variables are required for machine '{self.machine_name}' with choice states")
+            if next_state_key is None:
+                raise ValueError(
+                    f"Choice state '{state_key}' must have a next state key")
+            self.state_builder.configure_choice_state(
+                current_state, next_state_key, self.variables)
+
+        elif state_type == 'parallel':
+            if self.definition is None:
+                raise ValueError(
+                    "Machine definition is required for parallel states")
+            self.state_builder.configure_parallel_state(
+                current_state, next_state, self.definition)
+
+    def parse(self) -> StateMachine:
+        """Parse the machine configuration and return a StateMachine object."""
+        logger.info(f"Parsing machine: {self.machine_name}")
+
+        for state_key, next_state_key in self.state_tree.items():
+            self._process_state(state_key, next_state_key)
+
+        logger.info(
+            f"Successfully parsed machine '{self.machine_name}' with {len(self.machine_tree)} states")
+        return StateMachine(self.machine_name, self.machine_tree)
+
+    @staticmethod
+    def parse_machine(machine_config: dict[str, Any], definition: Optional[dict[str, Any]] = None) -> StateMachine:
+        """Static method to parse a machine configuration."""
+        parser = MachineParser(machine_config, definition)
+        return parser.parse()
 
 
 def parse_machine_definition(definition_file_path: str) -> StateMachine:
@@ -292,8 +254,10 @@ def parse_machine_definition(definition_file_path: str) -> StateMachine:
     try:
         with open(definition_path, 'r', encoding='utf-8') as file:
             data = yaml.safe_load(file)
+
     except yaml.YAMLError as e:
         logger.error(f"Failed to parse YAML file: {e}")
+
         raise yaml.YAMLError(
             f"Invalid YAML format in {definition_file_path}: {e}") from e
 
@@ -304,12 +268,13 @@ def parse_machine_definition(definition_file_path: str) -> StateMachine:
         raise ValueError("Missing 'entry' key in machine definition")
 
     entry_machine_name = data['entry']
+
     if entry_machine_name not in data:
         raise KeyError(
             f"Entry machine '{entry_machine_name}' not found in definition")
 
     machine_config = data[entry_machine_name]
-    return parse_machine(machine_config, data)
+    return MachineParser.parse_machine(machine_config, data)
 
 
 def run_example_parallel_machine() -> None:
