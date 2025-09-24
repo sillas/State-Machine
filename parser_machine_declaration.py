@@ -162,7 +162,7 @@ def parser(machines_definitions: str) -> StateMachine | None:
     return None
 
 
-def main():
+def use_example_parallel():
 
     machine = parser('sm_p_description.yml')
     if not machine:
@@ -173,5 +173,17 @@ def main():
     print(result)
 
 
+def use_example():
+
+    machine = parser('sm_description.yml')
+    if not machine:
+        return
+
+    event: dict[str, int] = {"value": 50}
+    result = machine.run(event)
+    print(result)
+
+
 if __name__ == "__main__":
-    main()
+    use_example()
+    use_example_parallel()
