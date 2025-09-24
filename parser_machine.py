@@ -151,7 +151,7 @@ class StateMachineParser:
             logger.error(f"Error parsing machine: {e}")
             raise
 
-    def parse_machine(self, machine_config) -> StateMachine:
+    def parse_machine(self, machine_config: dict[str, Any]) -> StateMachine:
         """Parse a machine configuration and return a StateMachine object."""
         try:
             name = machine_config['name']
