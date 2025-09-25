@@ -155,7 +155,7 @@ As condições seguem a sintaxe natural:
 - "when exist $.error then #error-handler-state"
 - "when $.result eq 'emal' then #send-email-state"
 - "when $.result eq 'whatsapp' then #send-wa-state"
-- "#default-state" #TODO
+- "#default-state"
 ```
 
 ### Operadores Suportados

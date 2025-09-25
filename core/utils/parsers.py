@@ -64,7 +64,7 @@ class LiteralListParser(ConditionParser):
         return json.loads(self.condition)
 
 
-class LiteralDictParser(ConditionParser):  # TODO Parse dict with JSON.
+class LiteralDictParser(ConditionParser):
     def can_parse(self) -> bool:
         return self.condition.startswith("{") and self.condition.endswith("}")
 
