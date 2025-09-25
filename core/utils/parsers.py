@@ -42,8 +42,19 @@ class EmptyListParser(ConditionParser):
         return []
 
 
-class ListParser(ConditionParser):
+class EmptyDictParser(ConditionParser):
+    """Parses conditions representing empty dicts and returns an empty dict."""
+
+    def can_parse(self) -> bool:
+        return "{}" in self.condition
+
+    def parse(self, evaluator: 'Choice') -> Any:
+        return {}
+
+
+class LiteralListParser(ConditionParser):
     """Parses list conditions from a string and evaluates each item using the provided evaluator."""
+    # TODO tentar usar json.loads
 
     def can_parse(self) -> bool:
         return "[" in self.condition
@@ -53,11 +64,19 @@ class ListParser(ConditionParser):
         return [evaluator._parse_condition(item) for item in cond_list]
 
 
+class LiteralDictParser(ConditionParser):  # TODO Parse dict with JSON.
+    def can_parse(self) -> bool:
+        return "{" in self.condition and "}" in self.condition
+
+    def parse(self, evaluator: 'Choice') -> Any:
+        return super().parse(evaluator)
+
+
 class JsonPathParser(ConditionParser):
     """Parses and evaluates JSONPath expressions against a given JSON-like object."""
 
     def can_parse(self) -> bool:
-        return "$." in self.condition
+        return self.condition.startswith('$.')
 
     def parse(self, evaluator: 'Choice') -> Any:
         return self._jsonpath_query(evaluator._data, self.condition)
@@ -74,6 +93,9 @@ class JsonPathParser(ConditionParser):
             raise ValueError(f"Invalid JSONPath expression: {expr}") from e
 
         matches = jsonpath_expr.find(obj)
+        if not matches:
+            raise ValueError(f"JSONPath expression not matches: {expr}")
+
         result = [match.value for match in matches]
 
         if len(result) == 1:
@@ -109,8 +131,10 @@ class NumberParser(ConditionParser):
 
 PARSERS = [
     EmptyListParser,
+    EmptyDictParser,
     LiteralStringParser,
     JsonPathParser,
-    ListParser,
+    LiteralDictParser,
+    LiteralListParser,
     NumberParser
 ]

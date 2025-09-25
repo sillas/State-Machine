@@ -2,7 +2,7 @@ import logging
 import re
 from time import time
 from typing import Any
-from core.utils.parsers import PARSERS, ConditionParser
+from core.utils.parsers import PARSERS, ConditionParser, JsonPathParser
 from core.utils.state_base import State, StateType
 
 
@@ -27,7 +27,7 @@ class Choice(State):
         - op: Comparison operators (gt, lt, eq, neq, gte, lte, contains, starts_with, ends_with).
         - bool_op: Boolean operators (and, or).
         - comparison: term op term
-        - condition: comparison | condition bool_op condition | not condition | (condition)
+        - condition: comparison | condition bool_op condition | not condition | exist JSONPath-term | (condition)
         - sttm: [when condition] then [sttm | term else sttm | term]
     Main Methods:
         - __init__(data): Initializes the evaluator with a data dictionary.
@@ -173,6 +173,19 @@ class Choice(State):
                 raise ValueError(f"Wrong condition value: {not_condition}")
 
             return not self._parse_condition(not_condition)
+
+        if condition.startswith('exist '):  # exist condition
+            exist_condition = condition[6:].strip()
+
+            if not exist_condition:
+                raise ValueError(f"Wrong condition value: {exist_condition}")
+
+            js_parser = JsonPathParser(exist_condition)
+            try:
+                js_parser.parse(self)
+                return True
+            except ValueError:
+                return False
 
         if ' and ' in condition or ' or ' in condition:  # condition bool_op condition
             op = ' and ' if ' and ' in condition else ' or '
