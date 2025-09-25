@@ -25,6 +25,7 @@ class TestStateMachine(unittest.TestCase):
         lambda_instance = Lambda(
             name=name,
             next_state=next_state,
+            lambda_path='lambda_path',
             timeout=timeout
         )
 
@@ -117,7 +118,11 @@ class TestStateMachine(unittest.TestCase):
     def test_state_not_found_error(self):
         """Test that StateNotFoundError is raised when a state is not found."""
         # Create a Lambda that transitions to a non-existent state
-        bad_lambda = Lambda("bad_lambda", "non_existent_state", timeout=1)
+        bad_lambda = Lambda(
+            "bad_lambda",
+            "non_existent_state",
+            "lambda_path",
+            timeout=1)
         bad_lambda._handler = MagicMock(return_value={"key": "value"})
 
         machine = StateMachine("test_machine", [bad_lambda])
@@ -129,7 +134,12 @@ class TestStateMachine(unittest.TestCase):
     def test_state_execution_error(self):
         """Test that StateMachineExecutionError is raised when a state execution fails."""
         # Create a Lambda with a handler that raises an exception
-        error_lambda = Lambda("error_lambda", "next_state", timeout=1)
+        error_lambda = Lambda(
+            "error_lambda",
+            "next_state",
+            lambda_path='lambda_path',
+            timeout=1
+        )
         error_lambda._handler = MagicMock(side_effect=ValueError("Test error"))
 
         machine = StateMachine("test_machine", [error_lambda])
@@ -164,7 +174,12 @@ class TestStateMachine(unittest.TestCase):
         mock_executor.return_value = mock_executor_instance
 
         # Create a simpler test case with just one Lambda
-        test_lambda = Lambda("test_lambda", None, timeout=1)
+        test_lambda = Lambda(
+            "test_lambda",
+            None,
+            lambda_path='lambda_path',
+            timeout=1
+        )
         test_lambda._handler = MagicMock(return_value={"key": "value"})
 
         machine = StateMachine("test_machine", [test_lambda])
