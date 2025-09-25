@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from core.blocks.choice_handler import Choice, OPERATORS
+from core.handlers.choice_handler import Choice, OPERATORS
 from core.utils.state_base import StateType
 
 
@@ -166,7 +166,7 @@ class TestChoice(unittest.TestCase):
     def test_parse_condition_not_operator(self):
         """Test parsing conditions with NOT operator."""
         # Test with actual NOT logic without mocking the method itself
-        with patch('core.blocks.choice_handler.PARSERS') as mock_parsers:
+        with patch('core.handlers.choice_handler.PARSERS') as mock_parsers:
             mock_parser_instance = MagicMock()
             mock_parser_instance.can_parse.return_value = True
             mock_parser_instance.parse.return_value = False  # Condition evaluates to False
@@ -180,7 +180,7 @@ class TestChoice(unittest.TestCase):
     def test_parse_condition_logical_operators(self):
         """Test parsing conditions with AND/OR operators."""
         # Test AND operator
-        with patch('core.blocks.choice_handler.PARSERS') as mock_parsers:
+        with patch('core.handlers.choice_handler.PARSERS') as mock_parsers:
             mock_parser_instance = MagicMock()
             mock_parser_instance.can_parse.return_value = True
             mock_parser_instance.parse.side_effect = [
@@ -193,7 +193,7 @@ class TestChoice(unittest.TestCase):
             self.assertTrue(result)
 
         # Test OR operator
-        with patch('core.blocks.choice_handler.PARSERS') as mock_parsers:
+        with patch('core.handlers.choice_handler.PARSERS') as mock_parsers:
             mock_parser_instance = MagicMock()
             mock_parser_instance.can_parse.return_value = True
             mock_parser_instance.parse.side_effect = [
@@ -221,7 +221,7 @@ class TestChoice(unittest.TestCase):
         condition = "test_condition"
 
         # Mock the PARSERS list directly in the choice_handler module
-        with patch('core.blocks.choice_handler.PARSERS') as mock_parsers:
+        with patch('core.handlers.choice_handler.PARSERS') as mock_parsers:
             mock_parser_instance = MagicMock()
             mock_parser_instance.can_parse.return_value = True
             mock_parser_instance.parse.return_value = "parsed_value"
@@ -308,7 +308,7 @@ class TestChoice(unittest.TestCase):
         choice._data = test_data
 
         # Mock parser behavior for price comparison
-        with patch('core.blocks.choice_handler.PARSERS') as mock_parsers:
+        with patch('core.handlers.choice_handler.PARSERS') as mock_parsers:
             mock_parser_instance = MagicMock()
             mock_parser_instance.can_parse.return_value = True
 

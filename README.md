@@ -36,8 +36,8 @@ A state machine consists of a collection of lambda functions and a machine defin
 
 ```python
 from core.state_machine import StateMachine
-from core.blocks.lambda_handler import Lambda
-from core.blocks.choice_handler import Choice
+from core.handlers.lambda_handler import Lambda
+from core.handlers.choice_handler import Choice
 
 # Define your state machine with lambdas and choice states
 machine_tree = [
@@ -119,7 +119,7 @@ Choice statements support complex conditional logic with the following formats:
 ### Example Choice Usage
 
 ```python
-from core.blocks.choice_handler import Choice
+from core.handlers.choice_handler import Choice
 
 # Define complex conditional statements
 choice_statements = [
@@ -142,7 +142,7 @@ The project is organized into several key components:
 
 - **core/**: Contains the core state machine implementation
   - **state_machine.py**: Main StateMachine class for workflow orchestration
-  - **blocks/**: State handler implementations
+  - **handlers/**: State handler implementations
     - **choice_handler.py**: Conditional logic and decision making
     - **lambda_handler.py**: Lambda function execution
     - **parallel_handler.py**: Parallel workflow execution
@@ -159,9 +159,9 @@ Below is an example of a complete state machine defined in `machines/example_mac
 
 ```python
 from core.state_machine import StateMachine
-from core.blocks.lambda_handler import Lambda
-from core.blocks.choice_handler import Choice
-from core.blocks.parallel_handler import Parallel
+from core.handlers.lambda_handler import Lambda
+from core.handlers.choice_handler import Choice
+from core.handlers.parallel_handler import Parallel
 
 def example_machine():
     """Example showing conditional branching based on input value."""

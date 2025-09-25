@@ -1,9 +1,9 @@
 import logging
 from time import sleep
-from core.blocks.choice_handler import Choice
+from core.handlers.choice_handler import Choice
 from core.state_machine import StateMachine
-from core.blocks.lambda_handler import Lambda
-from core.blocks.parallel_handler import Parallel
+from core.handlers.lambda_handler import Lambda
+from core.handlers.parallel_handler import Parallel
 
 
 def example_parallel_machine():

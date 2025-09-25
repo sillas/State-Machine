@@ -3,7 +3,7 @@ import concurrent.futures
 from unittest.mock import patch, MagicMock
 
 from core.exceptions import StateMachineExecutionError, StateNotFoundError
-from core.blocks.lambda_handler import Lambda
+from core.handlers.lambda_handler import Lambda
 from core.state_machine import StateMachine
 
 

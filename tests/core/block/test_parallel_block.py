@@ -2,7 +2,7 @@ import unittest
 import concurrent.futures
 from unittest.mock import patch, MagicMock
 
-from core.blocks.parallel_handler import Parallel
+from core.handlers.parallel_handler import Parallel
 from core.state_machine import StateMachine
 from core.utils.state_base import StateType
 

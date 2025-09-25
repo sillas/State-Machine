@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 from jsonpath_ng import parse
 
 if TYPE_CHECKING:
-    from core.blocks.choice_handler import Choice
+    from core.handlers.choice_handler import Choice
 
 
 class ConditionParser(ABC):

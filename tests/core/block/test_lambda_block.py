@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from core.blocks.lambda_handler import Lambda
+from core.handlers.lambda_handler import Lambda
 from core.utils.state_base import StateType
 
 
