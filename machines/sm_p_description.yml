@@ -38,7 +38,3 @@ example-machine:
       workflows:
         - mc_01
         - mc_02
-  
-  vars:
-    $ioo-statements:
-      - "when ($.value gt 10) and ($.value lt 53) then #center-state else #outer-state"
