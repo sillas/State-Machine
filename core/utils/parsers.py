@@ -56,7 +56,6 @@ class EmptyDictParser(ConditionParser):
 
 class LiteralListParser(ConditionParser):
     """Parses list conditions from a string and evaluates each item using the provided evaluator."""
-    # TODO tentar usar json.loads
 
     def can_parse(self) -> bool:
         return self.condition.startswith("[") and self.condition.endswith("]")

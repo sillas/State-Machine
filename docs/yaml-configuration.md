@@ -163,7 +163,7 @@ As condições seguem a sintaxe natural:
 - **Comparação**: `gt`, `lt`, `eq`, `neq`, `gte`, `lte`
 - **String**: `contains`, `starts_with`, `ends_with`
 - **Listas**: `contains`
-- **Estrutura**: `exist` #TODO
+- **Estrutura**: `exist`
 - **Lógicos**: `and`, `or`, `not`
 - **Agrupamento**: `(condição)`
 
@@ -172,11 +172,11 @@ As condições seguem a sintaxe natural:
 - **String**: `term op literal`
 
 ## Literal:
-- String: `'string', '10'` # Aspas simples
-- Number: 10, 15.7 # inteiro e ponto flutuate
-- Lista Vazia: `[]` #TODO
-- Dicionário Vazio: `{}` #TODO
-**Obs.:** Não é permitido listas ou dicionários "literais", apenas via JSONPath.
+- String: `'string', '10'` # Use aspas simples
+- Number: 10, 15.7
+> Use aspas duplas para strings dentro de listas e dicionários
+- Lista: `[5, 36, 8, 10, "string"]`
+- Dicionário: `{"key_1": "value", "key_2": 10}`
 
 ### JSONPath
 
@@ -187,6 +187,7 @@ Use JSONPath para acessar dados:
 "when $.itens[0] eq 'premium' then #vip"
 "when $.lista eq [] then #vazia"
 ```
+> Só é possível comparar com `eq`, listas e dicionários vazios.
 
 ## Exemplo Completo
 
