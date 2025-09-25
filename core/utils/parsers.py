@@ -1,10 +1,7 @@
 import json
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from jsonpath_ng import parse
-
-if TYPE_CHECKING:
-    from core.handlers.choice_handler import Choice
 
 
 class ConditionParser(ABC):
