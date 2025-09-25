@@ -72,6 +72,9 @@ class Choice(State):
 
         Raises:
             ValueError: If an operation string is in an invalid format.
+
+        TODO: Criar funcões cache em /cached_senences_[name]:
+        traduzir as condições em funções "cacheáveis¨.
         """
 
         for ops in operations:
