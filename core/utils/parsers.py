@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 from jsonpath_ng import parse
@@ -10,14 +11,15 @@ class ConditionParser(ABC):
     """Interface para parsers de condição."""
 
     def __init__(self, condition: str):
-        self.condition = condition
+        self.data = None
+        self.condition = condition.strip()
 
     @abstractmethod
     def can_parse(self) -> bool:
         pass
 
     @abstractmethod
-    def parse(self, evaluator: 'Choice') -> Any:
+    def parse(self) -> Any:
         pass
 
 
@@ -27,7 +29,7 @@ class LiteralStringParser(ConditionParser):
     def can_parse(self) -> bool:
         return "'" in self.condition
 
-    def parse(self, evaluator: 'Choice') -> Any:
+    def parse(self) -> Any:
         # Only the first two single quotes should be removed, the others should be kept.
         return self.condition.replace("'", '', 2)
 
@@ -38,7 +40,7 @@ class EmptyListParser(ConditionParser):
     def can_parse(self) -> bool:
         return "[]" in self.condition
 
-    def parse(self, evaluator: 'Choice') -> Any:
+    def parse(self) -> Any:
         return []
 
 
@@ -48,7 +50,7 @@ class EmptyDictParser(ConditionParser):
     def can_parse(self) -> bool:
         return "{}" in self.condition
 
-    def parse(self, evaluator: 'Choice') -> Any:
+    def parse(self) -> Any:
         return {}
 
 
@@ -57,19 +59,18 @@ class LiteralListParser(ConditionParser):
     # TODO tentar usar json.loads
 
     def can_parse(self) -> bool:
-        return "[" in self.condition
+        return self.condition.startswith("[") and self.condition.endswith("]")
 
-    def parse(self, evaluator: 'Choice') -> Any:
-        cond_list = self.condition.split('[')[1].split(']')[0].split(',')
-        return [evaluator._parse_condition(item) for item in cond_list]
+    def parse(self) -> Any:
+        return json.loads(self.condition)
 
 
 class LiteralDictParser(ConditionParser):  # TODO Parse dict with JSON.
     def can_parse(self) -> bool:
-        return "{" in self.condition and "}" in self.condition
+        return self.condition.startswith("{") and self.condition.endswith("}")
 
-    def parse(self, evaluator: 'Choice') -> Any:
-        return super().parse(evaluator)
+    def parse(self) -> Any:
+        return json.loads(self.condition)
 
 
 class JsonPathParser(ConditionParser):
@@ -78,8 +79,13 @@ class JsonPathParser(ConditionParser):
     def can_parse(self) -> bool:
         return self.condition.startswith('$.')
 
-    def parse(self, evaluator: 'Choice') -> Any:
-        return self._jsonpath_query(evaluator._data, self.condition)
+    def parse(self) -> Any:
+        data = self.data
+
+        if not isinstance(data, (dict, list)):
+            raise ValueError("JsonPathParser: 'data' must be a dict or list")
+
+        return self._jsonpath_query(data, self.condition)
 
     def _jsonpath_query(self, obj: Any, expr: str) -> Any:
         """
@@ -115,7 +121,7 @@ class NumberParser(ConditionParser):
 
         return condition.isnumeric()
 
-    def parse(self, evaluator: 'Choice') -> Any:
+    def parse(self) -> Any:
 
         condition = self.condition
 

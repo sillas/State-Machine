@@ -181,8 +181,9 @@ class Choice(State):
                 raise ValueError(f"Wrong condition value: {exist_condition}")
 
             js_parser = JsonPathParser(exist_condition)
+            js_parser.data = self._data
             try:
-                js_parser.parse(self)
+                js_parser.parse()
                 return True
             except ValueError:
                 return False
@@ -207,4 +208,6 @@ class Choice(State):
         for parser in PARSERS:
             p: ConditionParser = parser(condition)
             if p.can_parse():
-                return p.parse(self)
+                if p.__class__.__name__ == 'JsonPathParser':
+                    p.data = self._data
+                return p.parse()
