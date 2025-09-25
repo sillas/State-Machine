@@ -1,10 +1,10 @@
-# Exemplos YAML do State Machine
+# State Machine YAML Examples
 
-Este documento apresenta exemplos práticos de configuração YAML para diferentes cenários de uso.
+This document presents practical examples of YAML configuration for different usage scenarios.
 
-## Exemplo 1: Máquina Sequencial Simples
+## Example 1: Simple Sequential Machine
 
-**Arquivo**: `machines/sm_description.yml`
+**File**: `machines/sm_description.yml`
 
 ```yaml
 entry: example-machine
@@ -36,15 +36,15 @@ example-machine:
       - "when ($.value gt 10) and ($.value lt 53) then #center-state else #outer-state"
 ```
 
-### Como Funciona
+### How It Works
 
-1. **Entrada**: Executa `center_state` lambda
-2. **Decisão**: Avalia se `value` está entre 10 e 53
-3. **Saída**:
-   - Se `value` ∈ [11, 52] → volta para `center_state`
-   - Caso contrário → vai para `outer_state` (final)
+1. **Entry**: Executes `center_state` lambda
+2. **Decision**: Evaluates if `value` is between 10 and 53
+3. **Output**:
+   - If `value` ∈ [11, 52] → returns to `center_state`
+   - Otherwise → goes to `outer_state` (final)
 
-### Estrutura de Arquivos Necessária
+### Required File Structure
 
 ```
 lambdas/example/
@@ -54,7 +54,7 @@ lambdas/example/
     └── main.py
 ```
 
-### Exemplo de Lambda
+### Lambda Example
 
 ```python
 # lambdas/example/center_state/main.py
@@ -63,14 +63,14 @@ def lambda_handler(event, context):
     return event
 ```
 
-## Exemplo 2: Execução Paralela
+## Example 2: Parallel Execution
 
-**Arquivo**: `machines/sm_p_description.yml`
+**File**: `machines/sm_p_description.yml`
 
 ```yaml
 entry: example-machine
 
-# Primeira máquina para execução paralela
+# First machine for parallel execution
 mc_01:
   name: machine_01
   lambda_dir: lambdas/example
@@ -83,7 +83,7 @@ mc_01:
       name: center_state
       type: lambda 
 
-# Segunda máquina para execução paralela
+# Second machine for parallel execution
 mc_02:
   name: machine_02
   lambda_dir: lambdas/example
@@ -96,13 +96,13 @@ mc_02:
       name: outer_state
       type: lambda 
 
-# Máquina principal que orquestra a execução paralela
+# Main machine that orchestrates parallel execution
 example-machine:
   name: 'example machine'
   lambda_dir: lambdas/example
 
   tree:
-    run-state: null # Neste caso, não temos mais estados.
+    run-state: null # In this case, we have no more states.
   
   states:
     run-state:
@@ -113,250 +113,250 @@ example-machine:
         - mc_02
 ```
 
-### Como Funciona
+### How It Works
 
-1. **Entrada**: Executa estado paralelo `unique_state`
-2. **Paralelo**: Executa simultaneamente um ou mais máquinas:
-   - `mc_01`: executa `center_state`
-   - `mc_02`: executa `outer_state`
-   # Use para fluxos complexos ou para execução paralela de estados.
-3. **Resultado**: Retorna dados de ambos workflows
+1. **Entry**: Executes parallel state `unique_state`
+2. **Parallel**: Executes simultaneously one or more machines:
+   - `mc_01`: executes `center_state`
+   - `mc_02`: executes `outer_state`
+   # Use for complex flows or for parallel state execution.
+3. **Result**: Returns data from both workflows
 
-### Resultado Esperado
+### Expected Result
 
 ```python
 {
-    'machine_01': resultado_do_center_state,
-    'machine_02': resultado_do_outer_state
+    'machine_01': result_from_center_state,
+    'machine_02': result_from_outer_state
 }
 ```
 
-## Exemplo 3: Decisões Complexas
+## Example 3: Complex Decisions
 
 ```yaml
-entry: workflow-complexo
+entry: complex-workflow
 
-workflow-complexo:
-  name: 'Workflow com Múltiplas Decisões'
+complex-workflow:
+  name: 'Workflow with Multiple Decisions'
   lambda_dir: lambdas/business
 
   tree:
-    validar-usuario: decisao-idade
-    decisao-idade: $condicoes-idade
-    processar-adulto: decisao-premium
-    processar-menor: notificar-responsavel
-    decisao-premium: $condicoes-premium
+    validate-user: age-decision
+    age-decision: $age-conditions
+    process-adult: premium-decision
+    process-minor: notify-guardian
+    premium-decision: $premium-conditions
     upgrade-premium: null
-    manter-basico: null
-    notificar-responsavel: null
+    keep-basic: null
+    notify-guardian: null
   
   states:
-    validar-usuario:
-      name: validar_usuario
+    validate-user:
+      name: validate_user
       type: lambda
     
-    decisao-idade:
-      name: verificar_idade
+    age-decision:
+      name: check_age
       type: choice
     
-    processar-adulto:
-      name: processar_adulto
+    process-adult:
+      name: process_adult
       type: lambda
     
-    processar-menor:
-      name: processar_menor
+    process-minor:
+      name: process_minor
       type: lambda
       
-    decisao-premium:
-      name: verificar_premium
+    premium-decision:
+      name: check_premium
       type: choice
       
     upgrade-premium:
       name: upgrade_premium
       type: lambda
       
-    manter-basico:
-      name: manter_basico
+    keep-basic:
+      name: keep_basic
       type: lambda
       
-    notificar-responsavel:
-      name: notificar_responsavel
+    notify-guardian:
+      name: notify_guardian
       type: lambda
   
   vars:
-    $condicoes-idade:
-      - "when $.usuario.idade gte 18 then #processar-adulto else #processar-menor"
+    $age-conditions:
+      - "when $.user.age gte 18 then #process-adult else #process-minor"
       
-    $condicoes-premium:
-      - "when ($.usuario.pontos gt 1000) and ($.usuario.ativo eq true) then #upgrade-premium"
-      - "#manter-basico"
+    $premium-conditions:
+      - "when ($.user.points gt 1000) and ($.user.active eq true) then #upgrade-premium"
+      - "#keep-basic"
 ```
 
-### Fluxo de Execução
+### Execution Flow
 
 ```
-validar-usuario
+validate-user
        ↓
-  decisao-idade
+  age-decision
     ↓        ↓
-adulto      menor
+  adult     minor
    ↓          ↓
-decisao    notificar
-premium   responsavel
+premium    notify
+decision   guardian
  ↓    ↓
-up   basico
+up   basic
 grade
 ```
 
-## Exemplo 4: Timeout e Configurações Avançadas
+## Example 4: Timeout and Advanced Configurations
 
 ```yaml
-entry: workflow-robusto
+entry: robust-workflow
 
-workflow-robusto:
-  name: 'Workflow com Timeouts'
-  lambda_dir: lambdas/robusto
+robust-workflow:
+  name: 'Workflow with Timeouts'
+  lambda_dir: lambdas/robust
 
   tree:
-    processar-dados: validar-resultado
-    validar-resultado: $validacao
-    retry-processamento: null
-    finalizar-sucesso: null
+    process-data: validate-result
+    validate-result: $validation
+    retry-processing: null
+    finalize-success: null
   
   states:
-    processar-dados:
-      name: processar_dados_complexos
+    process-data:
+      name: process_complex_data
       type: lambda
-      timeout: 300  # 5 minutos
+      timeout: 300  # 5 minutes
     
-    validar-resultado:
-      name: validar_resultado
+    validate-result:
+      name: validate_result
       type: choice
     
-    retry-processamento:
-      name: retry_processamento
+    retry-processing:
+      name: retry_processing
       type: lambda
-      timeout: 180  # 3 minutos
+      timeout: 180  # 3 minutes
       
-    finalizar-sucesso:
-      name: finalizar_sucesso
+    finalize-success:
+      name: finalize_success
       type: lambda
   
   vars:
-    $validacao:
-      - "when $.resultado.status eq 'success' then #finalizar-sucesso"
-      - "when $.tentativas lt 3 then #retry-processamento"
-      - "#finalizar-sucesso"  # fallback
+    $validation:
+      - "when $.result.status eq 'success' then #finalize-success"
+      - "when $.attempts lt 3 then #retry-processing"
+      - "#finalize-success"  # fallback
 ```
 
-## Exemplo 5: Múltiplas Condições
+## Example 5: Multiple Conditions
 
 ```yaml
-entry: classificador
+entry: classifier
 
-classificador:
-  name: 'Sistema de Classificação'
-  lambda_dir: lambdas/classificador
+classifier:
+  name: 'Classification System'
+  lambda_dir: lambdas/classifier
 
   tree:
-    analisar-input: classificar
-    classificar: $regras-classificacao
-    categoria-a: null
-    categoria-b: null
-    categoria-c: null
-    categoria-default: null
+    analyze-input: classify
+    classify: $classification-rules
+    category-a: null
+    category-b: null
+    category-c: null
+    category-default: null
   
   states:
-    analisar-input:
-      name: analisar_input
+    analyze-input:
+      name: analyze_input
       type: lambda
     
-    classificar:
-      name: aplicar_regras
+    classify:
+      name: apply_rules
       type: choice
       
-    categoria-a:
-      name: processar_categoria_a
+    category-a:
+      name: process_category_a
       type: lambda
       
-    categoria-b:
-      name: processar_categoria_b
+    category-b:
+      name: process_category_b
       type: lambda
       
-    categoria-c:
-      name: processar_categoria_c
+    category-c:
+      name: process_category_c
       type: lambda
       
-    categoria-default:
-      name: processar_default
+    category-default:
+      name: process_default
       type: lambda
   
   vars:
-    $regras-classificacao:
-      - "when ($.score gt 0.8) and ($.tipo eq 'premium') then #categoria-a"
-      - "when ($.score gt 0.6) and ($.usuario.verificado eq true) then #categoria-b"
-      - "when $.score gt 0.4 then #categoria-c"
-      - "#categoria-default"  # caso padrão
+    $classification-rules:
+      - "when ($.score gt 0.8) and ($.type eq 'premium') then #category-a"
+      - "when ($.score gt 0.6) and ($.user.verified eq true) then #category-b"
+      - "when $.score gt 0.4 then #category-c"
+      - "#category-default"  # default case
 ```
 
-## Padrões Comuns
+## Common Patterns
 
-### 1. Estado Final
+### 1. Final State
 
-Estados que não têm próximo estado:
+States that have no next state:
 
 ```yaml
 tree:
-  ultimo-estado: null
+  last-state: null
 ```
 
-### 2. Loop Condicional
+### 2. Conditional Loop
 
-Estados que podem voltar para si mesmos:
+States that can return to themselves:
 
 ```yaml
 vars:
-  $loop-condicional:
-    - "when $.continuar eq true then #mesmo-estado else #proximo-estado"
+  $conditional-loop:
+    - "when $.continue eq true then #same-state else #next-state"
 ```
 
-### 3. Fallback Padrão
+### 3. Default Fallback
 
-Sempre inclua um caso padrão em choices:
+Always include a default case in choices:
 
 ```yaml
 vars:
-  $condicoes_1: # usando condição padrão
-    - "when $.condicao1 then #estado1"
-    - "when $.condicao2 then #estado2"
-    - "#estado-padrao"
-  $condicoes_2: # usando else
-    - "when $.condicao1 then #estado1 else #estado-padrao"
+  $conditions_1: # using default condition
+    - "when $.condition1 then #state1"
+    - "when $.condition2 then #state2"
+    - "#default-state"
+  $conditions_2: # using else
+    - "when $.condition1 then #state1 else #default-state"
 ```
 
-## Dicas de Boas Práticas
+## Best Practices Tips
 
-1. **Nomes Descritivos**: Use nomes claros para estados e máquinas
-2. **Timeouts**: Defina timeouts para operações longas
-3. **Fallbacks**: Sempre tenha um caso padrão em choices
-4. **Modularidade**: Separe workflows complexos em máquinas menores
-5. **Documentação**: Comente configurações complexas
+1. **Descriptive Names**: Use clear names for states and machines
+2. **Timeouts**: Define timeouts for long operations
+3. **Fallbacks**: Always have a default case in choices
+4. **Modularity**: Separate complex workflows into smaller machines
+5. **Documentation**: Comment complex configurations
 
-## Validação
+## Validation
 
-Para validar sua configuração:
+To validate your configuration:
 
 ```python
 from core.parser_machine import StateMachineParser
 
-parser = StateMachineParser('seu-arquivo.yml')
+parser = StateMachineParser('your-file.yml')
 machine = parser.parse()
 
 if machine:
     result = machine.run({"test": "data"})
 ```
 
-## Próximos Passos
+## Next Steps
 
-- Consulte [Configuração YAML](yaml-configuration.md) para detalhes técnicos
-- Veja [Referência da API](api-reference.md) para integração programática
+- Consult [YAML Configuration](yaml-configuration.md) for technical details
+- See [API Reference](api-reference.md) for programmatic integration

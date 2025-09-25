@@ -1,12 +1,12 @@
-# Referência da API - Parser YAML
+# API Reference - YAML Parser
 
-Este documento descreve a API do parser YAML para carregar e executar máquinas de estado definidas em arquivos YAML.
+This document describes the YAML parser API for loading and executing state machines defined in YAML files.
 
 ## StateMachineParser
 
-Classe principal para carregar e converter definições YAML em objetos `StateMachine` executáveis.
+Main class for loading and converting YAML definitions into executable `StateMachine` objects.
 
-### Construtor
+### Constructor
 
 ```python
 from core.parser_machine import StateMachineParser
@@ -14,23 +14,23 @@ from core.parser_machine import StateMachineParser
 parser = StateMachineParser(machine_definitions_file: str)
 ```
 
-**Parâmetros:**
-- `machine_definitions_file`: Caminho para o arquivo YAML com as definições
+**Parameters:**
+- `machine_definitions_file`: Path to the YAML file with the definitions
 
-**Exemplo:**
+**Example:**
 ```python
 parser = StateMachineParser('machines/sm_description.yml')
 ```
 
-### Métodos
+### Methods
 
 #### `parse() -> StateMachine`
 
-Converte as definições YAML carregadas em um objeto `StateMachine` executável.
+Converts the loaded YAML definitions into an executable `StateMachine` object.
 
-**Retorno:** Instância de `StateMachine` pronta para execução
+**Return:** `StateMachine` instance ready for execution
 
-**Exemplo:**
+**Example:**
 ```python
 parser = StateMachineParser('machines/sm_description.yml')
 machine = parser.parse()
@@ -42,252 +42,252 @@ if machine:
 
 #### `parse_machine(machine_config: dict) -> StateMachine`
 
-Converte uma configuração específica de máquina em objeto `StateMachine`. Usado internamente e para parsing de sub-máquinas em estados paralelos.
+Converts a specific machine configuration into a `StateMachine` object. Used internally and for parsing sub-machines in parallel states.
 
-Para uso direto, analise o exemplo em `machines/example_machine.py`
+For direct usage, analyze the example in `machines/example_machine.py`
 
-**Parâmetros:**
-- `machine_config`: Dicionário com configuração da máquina
+**Parameters:**
+- `machine_config`: Dictionary with machine configuration
 
-**Retorno:** Instância de `StateMachine`
+**Return:** `StateMachine` instance
 
 ## StateConfigurationProcessor
 
-Classe interna que processa configurações de estados e constrói blocos de execução.
+Internal class that processes state configurations and builds execution blocks.
 
-### Tipos de Estado Suportados
+### Supported State Types
 
-#### 1. Estado Lambda
+#### 1. Lambda State
 
-Executa uma função lambda externa:
+Executes an external lambda function:
 
 ```yaml
 states:
-  meu-estado:
-    name: nome_da_funcao
+  my-state:
+    name: function_name
     type: lambda
-    timeout: 30  # opcional
+    timeout: 30  # optional
 ```
 
-**Processamento:**
-- Verifica se o arquivo lambda existe em `{lambda_dir}/{name}/main.py`
-- Cria instância de `Lambda` com configurações apropriadas
-- Aplica timeout se especificado
+**Processing:**
+- Checks if lambda file exists at `{lambda_dir}/{name}/main.py`
+- Creates `Lambda` instance with appropriate configurations
+- Applies timeout if specified
 
-#### 2. Estado Choice
+#### 2. Choice State
 
-Executa lógica condicional:
+Executes conditional logic:
 
 ```yaml
 states:
-  decisao:
-    name: nome_da_decisao
+  decision:
+    name: decision_name
     type: choice
 ```
 
-**Processamento:**
-- Resolve variáveis de condição
-- Substitui referências de hash (`#estado`) por nomes reais
-- Cria instância de `Choice` com condições processadas
+**Processing:**
+- Resolves condition variables
+- Substitutes hash references (`#state`) with real names
+- Creates `Choice` instance with processed conditions
 
-#### 3. Estado Parallel
+#### 3. Parallel State
 
-Executa múltiplos workflows simultaneamente:
+Executes multiple workflows simultaneously:
 
 ```yaml
 states:
-  paralelo:
-    name: execucao_paralela
+  parallel:
+    name: parallel_execution
     type: parallel
     workflows:
       - workflow-1
       - workflow-2
 ```
 
-**Processamento:**
-- Cria `StateMachine` para cada workflow listado
-- Configura execução paralela via `Parallel`
+**Processing:**
+- Creates `StateMachine` for each listed workflow
+- Configures parallel execution via `Parallel`
 
-## Exemplo de Uso Completo
+## Complete Usage Example
 
 ```python
 from core.parser_machine import StateMachineParser
 import logging
 
-# Configurar logging para ver o progresso
+# Configure logging to see progress
 logging.basicConfig(level=logging.INFO)
 
-def executar_workflow_yaml():
+def execute_yaml_workflow():
     try:
-        # Carregar definições do arquivo YAML
+        # Load definitions from YAML file
         parser = StateMachineParser('machines/sm_description.yml')
         
-        # Converter para StateMachine executável
+        # Convert to executable StateMachine
         machine = parser.parse()
         
         if not machine:
-            print("Erro: não foi possível carregar a máquina")
+            print("Error: could not load the machine")
             return
         
-        # Preparar dados de entrada
+        # Prepare input data
         event = {
             "value": 25,
-            "usuario": {"nome": "João", "idade": 30}
+            "user": {"name": "John", "age": 30}
         }
         
-        # Executar o workflow
-        resultado = machine.run(event)
+        # Execute the workflow
+        result = machine.run(event)
         
-        print(f"Resultado final: {resultado}")
+        print(f"Final result: {result}")
         
     except FileNotFoundError:
-        print("Arquivo YAML não encontrado")
+        print("YAML file not found")
     except Exception as e:
-        print(f"Erro durante execução: {e}")
+        print(f"Error during execution: {e}")
 
-# Executar
-executar_workflow_yaml()
+# Execute
+execute_yaml_workflow()
 ```
 
-## Validação e Tratamento de Erros
+## Validation and Error Handling
 
-O parser inclui validação robusta:
+The parser includes robust validation:
 
-### Erros Comuns
+### Common Errors
 
-1. **Arquivo não encontrado:**
+1. **File not found:**
 ```python
-FileNotFoundError: Error: machines/arquivo.yml not found.
+FileNotFoundError: Error: machines/file.yml not found.
 ```
 
-2. **YAML inválido:**
+2. **Invalid YAML:**
 ```python
 yaml.YAMLError: Error parsing YAML: ...
 ```
 
-3. **Estado não encontrado:**
+3. **State not found:**
 ```python
-KeyError: State key not found: nome-do-estado
+KeyError: State key not found: state-name
 ```
 
-4. **Lambda não encontrado:**
+4. **Lambda not found:**
 ```python
-ModuleNotFoundError: Lambda lambdas/exemplo/funcao/main.py not found.
+ModuleNotFoundError: Lambda lambdas/example/function/main.py not found.
 ```
 
-5. **Variável de condição não encontrada:**
+5. **Condition variable not found:**
 ```python
-ValueError: Conditions for choice nome_choice do not exist!
+ValueError: Conditions for choice choice_name do not exist!
 ```
 
-### Estratégias de Debug
+### Debug Strategies
 
 ```python
 import logging
 
-# Ativar logs detalhados
+# Enable detailed logs
 logging.basicConfig(level=logging.DEBUG)
 
-# Criar parser com logs
-parser = StateMachineParser('machines/problema.yml')
+# Create parser with logs
+parser = StateMachineParser('machines/problem.yml')
 
 try:
     machine = parser.parse()
     result = machine.run({"test": True})
 except Exception as e:
-    logging.error(f"Erro detalhado: {e}")
-    # Analisar logs para identificar o problema
+    logging.error(f"Detailed error: {e}")
+    # Analyze logs to identify the problem
 ```
 
-## Integração com Código Python
+## Integration with Python Code
 
-### Usando junto com definição programática:
+### Using with programmatic definition:
 
 ```python
 from core.parser_machine import StateMachineParser
 from core.state_machine import StateMachine
 from core.handlers.lambda_handler import Lambda
 
-def workflow_hibrido():
-    # Carregar parte do workflow do YAML
-    parser = StateMachineParser('machines/parte1.yml')
-    parte1 = parser.parse()
+def hybrid_workflow():
+    # Load part of the workflow from YAML
+    parser = StateMachineParser('machines/part1.yml')
+    part1 = parser.parse()
     
-    # Criar parte adicional programaticamente  
-    parte2 = StateMachine("parte2", [
-        Lambda("processar_resultado", None, "lambdas/custom")
+    # Create additional part programmatically  
+    part2 = StateMachine("part2", [
+        Lambda("process_result", None, "lambdas/custom")
     ])
     
-    # Combinar ou executar sequencialmente
-    resultado1 = parte1.run({"input": "dados"})
-    resultado_final = parte2.run(resultado1)
+    # Combine or execute sequentially
+    result1 = part1.run({"input": "data"})
+    final_result = part2.run(result1)
     
-    return resultado_final
+    return final_result
 ```
 
-### Criando Parser Customizado:
+### Creating Custom Parser:
 
 ```python
 from core.parser_machine import StateMachineParser
 
-class MeuParser(StateMachineParser):
-    def __init__(self, arquivo_yaml, configuracoes_extras=None):
-        super().__init__(arquivo_yaml)
-        self.configuracoes_extras = configuracoes_extras or {}
+class MyParser(StateMachineParser):
+    def __init__(self, yaml_file, extra_configurations=None):
+        super().__init__(yaml_file)
+        self.extra_configurations = extra_configurations or {}
     
     def parse(self):
         machine = super().parse()
-        # Aplicar configurações extras
-        if self.configuracoes_extras.get('timeout_global'):
-            # Aplicar timeout global
+        # Apply extra configurations
+        if self.extra_configurations.get('global_timeout'):
+            # Apply global timeout
             pass
         return machine
 ```
 
-## Performance e Otimização
+## Performance and Optimization
 
-### Cache de Parsing
+### Parsing Cache
 
 ```python
 import functools
 from core.parser_machine import StateMachineParser
 
 @functools.lru_cache(maxsize=10)
-def get_cached_machine(arquivo_yaml):
-    parser = StateMachineParser(arquivo_yaml)
+def get_cached_machine(yaml_file):
+    parser = StateMachineParser(yaml_file)
     return parser.parse()
 
-# Uso com cache
-machine = get_cached_machine('machines/frequente.yml')
+# Usage with cache
+machine = get_cached_machine('machines/frequent.yml')
 ```
 
-### Validação Prévia
+### Prior Validation
 
 ```python
-def validar_yaml_antes_execucao(arquivo_yaml):
+def validate_yaml_before_execution(yaml_file):
     try:
-        parser = StateMachineParser(arquivo_yaml)
+        parser = StateMachineParser(yaml_file)
         machine = parser.parse()
-        return True, "YAML válido"
+        return True, "Valid YAML"
     except Exception as e:
-        return False, f"Erro de validação: {e}"
+        return False, f"Validation error: {e}"
 
-# Validar antes de usar em produção
-valido, mensagem = validar_yaml_antes_execucao('machines/producao.yml')
-if valido:
-    # Prosseguir com execução
+# Validate before using in production
+valid, message = validate_yaml_before_execution('machines/production.yml')
+if valid:
+    # Proceed with execution
     pass
 ```
 
-## Limitações Conhecidas
+## Known Limitations
 
-1. **Referências circulares**: O parser ainda não detecta loops infinitos em workflows
-2. **Validação de schema**: Ainda não há validação formal do schema YAML
-3. **Substituição de variáveis**: Limitada aos padrões `$variavel` (choice) e `#estado` (estados)
-4. **Aninhamento**: Não suporta definições de máquina aninhadas (sequênciais) no mesmo arquivo yml
+1. **Circular references**: The parser does not yet detect infinite loops in workflows
+2. **Schema validation**: There is no formal YAML schema validation yet
+3. **Variable substitution**: Limited to `$variable` (choice) and `#state` (states) patterns
+4. **Nesting**: Does not support nested (sequential) machine definitions in the same yml file
 
-## Próximos Passos
+## Next Steps
 
-- Consulte [Configuração YAML](yaml-configuration.md) para sintaxe detalhada
-- Veja [Exemplos YAML](yaml-examples.md) para casos de uso práticos
-- Examine os arquivos de exemplo em `machines/` para referência
+- Consult [YAML Configuration](yaml-configuration.md) for detailed syntax
+- See [YAML Examples](yaml-examples.md) for practical use cases
+- Examine the example files in `machines/` for reference

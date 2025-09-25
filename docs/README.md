@@ -1,32 +1,32 @@
-# Documentação do State Machine
+# State Machine Documentation
 
-Esta pasta contém a documentação detalhada para o projeto State Machine.
+This folder contains detailed documentation for the State Machine project.
 
-## Conteúdo
+## Contents
 
-- [Definição via YAML](yaml-configuration.md) - Como definir máquinas de estado usando arquivos YAML
-- [Exemplos YAML](yaml-examples.md) - Exemplos práticos e casos de uso
-- [Referência da API](api-reference.md) - Documentação técnica da API
+- [YAML Definition](yaml-configuration.md) - How to define state machines using YAML files
+- [YAML Examples](yaml-examples.md) - Practical examples and use cases
+- [API Reference](api-reference.md) - Technical API documentation
 
-## Visão Geral
+## Overview
 
-O State Machine suporta duas formas de definição:
+The State Machine supports two forms of definition:
 
-1. **Programática** - Definindo máquinas diretamente em Python
-2. **Declarativa** - Usando arquivos YAML para configuração
+1. **Programmatic** - Defining machines directly in Python
+2. **Declarative** - Using YAML files for configuration
 
-A documentação nesta pasta foca na abordagem declarativa usando YAML, que oferece:
+The documentation in this folder focuses on the declarative approach using YAML, which offers:
 
-- Separação clara entre lógica e configuração
-- Reutilização de componentes
-- Facilidade de manutenção
-- Versionamento de workflows
+- Clear separation between logic and configuration
+- Component reusability
+- Ease of maintenance
+- Workflow versioning
 
-## Como Usar
+## How to Use
 
-1. Defina sua máquina de estado em um arquivo YAML
-2. Use o `StateMachineParser` para carregar
-3. Implemente as funções lambda necessárias
-4. Execute usado [sua_máquina].run(input_data)
+1. Define your state machine in a YAML file
+2. Use the `StateMachineParser` to load it
+3. Implement the necessary lambda functions
+4. Execute using [your_machine].run(input_data)
 
-Consulte os documentos específicos para detalhes completos.
+Consult the specific documents for complete details.

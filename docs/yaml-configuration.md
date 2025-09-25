@@ -1,199 +1,199 @@
-# Configuração YAML para State Machine
+# YAML Configuration for State Machine
 
-Este documento descreve como definir máquinas de estado usando arquivos YAML no projeto State Machine.
+This document describes how to define state machines using YAML files in the State Machine project.
 
-## Estrutura Básica
+## Basic Structure
 
-Um arquivo YAML de configuração de máquina de estado possui a seguinte estrutura:
+A YAML state machine configuration file has the following structure:
 
 ```yaml
-entry: nome-da-maquina-principal
+entry: main-machine-name
 
-maquina-1:
-  name: 'Nome da Máquina'
-  lambda_dir: diretorio/das/lambdas # Diretório raiz dos lambdas
+machine-1:
+  name: 'Machine Name'
+  lambda_dir: directory/of/lambdas # Lambda root directory
   tree:
-    estado-1: proximo-estado
-    estado-2: null
+    state-1: next-state
+    state-2: null
   states:
-    estado-1:
-      name: nome_real_do_estado # Diretório do lambda dentro de "lambda_dir"
+    state-1:
+      name: real_state_name # Lambda directory inside "lambda_dir"
       type: lambda|choice|parallel
-  vars: # usado para as definições dos estados "Choice"
-    $variavel: valor
+  vars: # used for "Choice" state definitions
+    $variable: value
 ```
 
-## Elementos Principais
+## Main Elements
 
 ### 1. Entry Point (`entry`)
 
-Define qual máquina será executada como ponto de entrada:
+Defines which machine will be executed as the entry point:
 
 ```yaml
 entry: example-machine
 ```
 
-### 2. Definição de Máquina
+### 2. Machine Definition
 
-Cada máquina possui:
+Each machine has:
 
-- **name**: Nome descritivo da máquina
-- **lambda_dir**: Diretório onde estão as funções lambda
-- **tree**: Fluxo de execução entre estados
-- **states**: Definições detalhadas dos estados
-- **vars**: Variáveis reutilizáveis (opcional)
+- **name**: Descriptive name of the machine
+- **lambda_dir**: Directory where lambda functions are located
+- **tree**: Execution flow between states
+- **states**: Detailed state definitions
+- **vars**: Reusable variables (optional)
 
-### 3. Tree (Árvore de Execução)
+### 3. Tree (Execution Tree)
 
-Define o fluxo entre estados:
+Defines the flow between states:
 
 ```yaml
 tree:
-  primeiro-estado: segundo-estado    # primeiro-estado → segundo-estado
-  segundo-estado: terceiro-estado    # segundo-estado → terceiro-estado
-  terceiro-estado: null              # terceiro-estado (final)
+  first-state: second-state     # first-state → second-state
+  second-state: third-state     # second-state → third-state
+  third-state: null             # third-state (final)
 ```
 
-### 4. States (Definições de Estados)
+### 4. States (State Definitions)
 
-#### Estado Lambda
+#### Lambda State
 
-Executa uma função lambda:
+Executes a lambda function:
 
 ```yaml
 states:
-  meu-estado:
-    name: nome_da_funcao_lambda
+  my-state:
+    name: lambda_function_name
     type: lambda
-    timeout: 30  # opcional, em segundos (default: 60s para tipo lambda)
+    timeout: 30  # optional, in seconds (default: 60s for lambda type)
 ```
 
-A função lambda deve estar em: `{lambda_dir}/{name}/main.py`
-E possuir o método de entrada `lambda_handler(event: Any, context: dict[str, Any])`
+The lambda function must be at: `{lambda_dir}/{name}/main.py`
+And have the entry method `lambda_handler(event: Any, context: dict[str, Any])`
 
-#### Estado Choice
+#### Choice State
 
-Executa lógica condicional:
+Executes conditional logic:
 
 ```yaml
 states:
-  decisao:
-    name: nome_da_decisao
+  decision:
+    name: decision_name
     type: choice
 ```
 
-Requer variáveis com as condições:
+Requires variables with conditions:
 
 ```yaml
 vars:
-  $condicoes: # lista
-    - "when $.valor gt 10 then #estado-a else #estado-b"
+  $conditions: # list
+    - "when $.value gt 10 then #state-a else #state-b"
 ```
 
-#### Estado Parallel
+#### Parallel State
 
-Executa múltiplos workflows em paralelo:
+Executes multiple workflows in parallel:
 
 ```yaml
 states:
-  paralelo:
-    name: execucao_paralela
+  parallel:
+    name: parallel_execution
     type: parallel
     workflows:
       - workflow-1
       - workflow-2
 ```
 
-### 5. Variables (Variáveis)
+### 5. Variables
 
-Permitem reutilização de valores complexos no Choice:
+Allow reuse of complex values in Choice:
 
 ```yaml
 vars:
-  $minhas-condicoes:
+  $my-conditions:
     - "when ($.value gt 10) and ($.value lt 53) then #center-state else #outer-state"
 ```
 
-Uso no tree:
+Usage in tree:
 ```yaml
 tree:
-  estado-choice: $minhas-condicoes
+  choice-state: $my-conditions
 ```
 
-## Referências de Estado
+## State References
 
-### Referência por Hash (#)
+### Hash Reference (#)
 
-Dentro de condições, use `#` para referenciar estados definidos:
+Within conditions, use `#` to reference defined states:
 
 ```yaml
 vars:
-  $condicoes:
-    - "when $.valor gt 100 then #estado-caro else #estado-barato"
+  $conditions:
+    - "when $.value gt 100 then #expensive-state else #cheap-state"
 ```
 
-Isso será convertido automaticamente para os nomes reais dos estados.
-Você pode usar os nomes reais (em name) entre aspas simples, se preferir.
+This will be automatically converted to the real state names.
+You can use the real names (in name) in single quotes if you prefer.
 
-## Sintaxe de Condições
+## Condition Syntax
 
-As condições seguem a sintaxe natural:
+Conditions follow natural syntax:
 
 ```yaml
-# Condição simples
-"when $.idade gt 18 then #adulto else #menor"
+# Simple condition
+"when $.age gt 18 then #adult else #minor"
 
-# Condições complexas
-"when ($.idade gt 18) and ($.nome starts_with 'João') then #valido"
-# ou
-"when $.idade gt 18 and $.nome starts_with 'João' then #valido"
+# Complex conditions
+"when ($.age gt 18) and ($.name starts_with 'John') then #valid"
+# or
+"when $.age gt 18 and $.name starts_with 'John' then #valid"
 
-# Condições aninhadas
-"when $.preco gt 100 then #caro else when $.preco gt 50 then #medio else #barato"
+# Nested conditions
+"when $.price gt 100 then #expensive else when $.price gt 50 then #medium else #cheap"
 
-# Condições complexas (lista)
+# Complex conditions (list)
 - "when exist $.error then #error-handler-state"
-- "when $.result eq 'emal' then #send-email-state"
+- "when $.result eq 'email' then #send-email-state"
 - "when $.result eq 'whatsapp' then #send-wa-state"
 - "#default-state"
 ```
 
-### Operadores Suportados
+### Supported Operators
 
-- **Comparação**: `gt`, `lt`, `eq`, `neq`, `gte`, `lte`
+- **Comparison**: `gt`, `lt`, `eq`, `neq`, `gte`, `lte`
 - **String**: `contains`, `starts_with`, `ends_with`
-- **Listas**: `contains`
-- **Estrutura**: `exist`
-- **Lógicos**: `and`, `or`, `not`
-- **Agrupamento**: `(condição)`
+- **Lists**: `contains`
+- **Structure**: `exist`
+- **Logical**: `and`, `or`, `not`
+- **Grouping**: `(condition)`
 
-## Exemplos de uso:
-- **Comparação**: `term op term`
+## Usage examples:
+- **Comparison**: `term op term`
 - **String**: `term op literal`
 
 ## Literal:
-- String: `'string', '10'` # Use aspas simples
+- String: `'string', '10'` # Use single quotes
 - Number: 10, 15.7
-> Use aspas duplas para strings dentro de listas e dicionários
-- Lista: `[5, 36, 8, 10, "string"]`
-- Dicionário: `{"key_1": "value", "key_2": 10}`
+> Use double quotes for strings inside lists and dictionaries
+- List: `[5, 36, 8, 10, "string"]`
+- Dictionary: `{"key_1": "value", "key_2": 10}`
 
 ### JSONPath
 
-Use JSONPath para acessar dados:
+Use JSONPath to access data:
 
 ```yaml
-"when $.usuario.idade gt 25 then #senior"
-"when $.itens[0] eq 'premium' then #vip"
-"when $.lista eq [] then #vazia"
+"when $.user.age gt 25 then #senior"
+"when $.items[0] eq 'premium' then #vip"
+"when $.list eq [] then #empty"
 ```
-> Só é possível comparar com `eq`, listas e dicionários vazios.
+> Only empty lists and dictionaries can be compared with `eq`.
 
-## Exemplo Completo
+## Complete Example
 
-Veja `machines/sm_description.yml` para um exemplo funcional completo.
+See `machines/sm_description.yml` for a complete functional example.
 
-## Próximos Passos
+## Next Steps
 
-- Consulte [Exemplos YAML](yaml-examples.md) para casos de uso práticos
-- Veja [Referência da API](api-reference.md) para detalhes técnicos
+- Consult [YAML Examples](yaml-examples.md) for practical use cases
+- See [API Reference](api-reference.md) for technical details
