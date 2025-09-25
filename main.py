@@ -1,9 +1,14 @@
 from logging_config import setup_logging
-from machines.example_machine import main
+from machines.example_machine import main as main_from_def
+from machines.example_machine_def import main as main_from_yml
 
 # uv run main.py
 
 setup_logging()
 
 if __name__ == "__main__":
-    main()
+    print("Run from script")
+    main_from_def()
+
+    print("\n\n\nRun from yml file")
+    main_from_yml()

@@ -52,9 +52,9 @@ def example_machine():
 
 def main():
 
-    # logging.info("Running example_machine()\n\n")
-    # example_machine()
-    # sleep(3)
+    logging.info("Running example_machine()\n\n")
+    example_machine()
+    sleep(3)
 
     logging.info("\n\nRunning example_parallel_machine()\n\n")
     example_parallel_machine()
