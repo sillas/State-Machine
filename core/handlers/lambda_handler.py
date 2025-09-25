@@ -30,8 +30,6 @@ class Lambda(State):
             Raises ImportError if the module cannot be loaded.
     """
 
-    _handler = None
-
     def __init__(self, name: str, next_state: str | None, lambda_path: str, timeout: Optional[int] = None) -> None:
         super().__init__(
             name=name,
@@ -39,7 +37,7 @@ class Lambda(State):
             type=StateType.LAMBDA,
             timeout=timeout
         )
-
+        self._handler = None
         self._load_lambda(lambda_path)  # pre-load the lambda handler
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:

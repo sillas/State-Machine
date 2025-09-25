@@ -40,10 +40,8 @@ class Choice(State):
         ValueError: For invalid operation formats or empty conditions.
     """
 
-    _data = None
-    _operations = []
-
     def __init__(self, name: str, statements: list[str]) -> None:
+        self._data = None
         self._operations = statements
         super().__init__(name=name, next_state=None, type=StateType.CHOICE, timeout=1)
 

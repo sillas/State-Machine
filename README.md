@@ -41,13 +41,13 @@ from core.handlers.choice_handler import Choice
 
 # Define your state machine with lambdas and choice states
 machine_tree = [
-    Lambda("request", "process_data"),  # Process initial request
-    Lambda("process_data", "decision"),  # Process the data
+    Lambda("request", "process_data", "lambda_path"),  # Process initial request
+    Lambda("process_data", "decision", "lambda_path"),  # Process the data
     Choice("decision", [
         "when $.result.confidence gt 0.8 then 'high_confidence' else 'low_confidence'"
     ]),
-    Lambda("high_confidence", None),  # Final state for high confidence
-    Lambda("low_confidence", None)    # Final state for low confidence
+    Lambda("high_confidence", None, "lambda_path"),  # Final state for high confidence
+    Lambda("low_confidence", None, "lambda_path")    # Final state for low confidence
 ]
 
 # Create the state machine

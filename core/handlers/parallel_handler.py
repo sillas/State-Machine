@@ -21,7 +21,6 @@ class Parallel(State):
         handler(event: Any, context: dict[str, Any]) -> Any:
             Runs all workflows in parallel, waits for completion or timeout, and returns a dictionary mapping workflow names to their results.
     """
-    _workflows: list[StateMachine]
 
     def __init__(self, name: str, next_state: Optional[str], workflows: list[StateMachine]):
 
