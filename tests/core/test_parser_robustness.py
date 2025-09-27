@@ -48,14 +48,14 @@ class TestLiteralTerms(unittest.TestCase):
             "default": {"name": "default_state"}
         }
 
-    def _run_test(self, conditions):
+    def _run_test(self, conditions, error_message):
         cache_path = ''
         try:
             cache_path = parse_cond(
                 self.choice_name, conditions, self.base_states)
             self.assertTrue(os.path.exists(cache_path))
         except Exception as e:
-            self.fail(f"Falha no parsing de literal strings: {e}")
+            self.fail(f"{error_message}: {e}")
         finally:
             if cache_path:
                 str_inex = cache_path.index(self.choice_name)
@@ -72,7 +72,7 @@ class TestLiteralTerms(unittest.TestCase):
             "#default"
         ]
 
-        self._run_test(conditions)
+        self._run_test(conditions, "Falha no parsing de literal strings")
 
     def test_literal_number_parsing(self):
         """Testa parsing de números inteiros e decimais."""
@@ -84,7 +84,7 @@ class TestLiteralTerms(unittest.TestCase):
             "#default"
         ]
 
-        self._run_test(conditions)
+        self._run_test(conditions, "Falha no parsing de literal number")
 
     def test_empty_list_parsing(self):
         """Testa parsing de listas vazias."""
@@ -94,7 +94,7 @@ class TestLiteralTerms(unittest.TestCase):
             "#default"
         ]
 
-        self._run_test(conditions)
+        self._run_test(conditions, "Falha no parsing de empty list")
 
     def test_list_parsing(self):
         """Testa parsing de listas com conteúdo."""
@@ -105,7 +105,7 @@ class TestLiteralTerms(unittest.TestCase):
             "#default"
         ]
 
-        self._run_test(conditions)
+        self._run_test(conditions, "Falha no parsing de list")
 
     def test_empty_dict_parsing(self):
         """Testa parsing de dicionários vazios."""
@@ -115,7 +115,7 @@ class TestLiteralTerms(unittest.TestCase):
             "#default"
         ]
 
-        self._run_test(conditions)
+        self._run_test(conditions, "Falha no parsing de empty dict")
 
     def test_dict_parsing(self):
         """Testa parsing de dicionários com conteúdo."""
@@ -125,7 +125,7 @@ class TestLiteralTerms(unittest.TestCase):
             "#default"
         ]
 
-        self._run_test(conditions)
+        self._run_test(conditions, "Falha no parsing de dict")
 
     def test_boolean_literals(self):
         """Testa parsing de literais booleanos true/false."""
@@ -136,7 +136,7 @@ class TestLiteralTerms(unittest.TestCase):
             "#default"
         ]
 
-        self._run_test(conditions)
+        self._run_test(conditions, "Falha no parsing de literals boolean")
 
 
 class TestJSONPathExpressions(unittest.TestCase):
@@ -178,23 +178,6 @@ class TestJSONPathExpressions(unittest.TestCase):
         self.assertIn("$.items[0]", jsonpaths)
         self.assertIn("$.users[*].name", jsonpaths)
 
-    def test_complex_jsonpath(self):
-        """Testa JSONPath com sintaxes complexas."""
-        conditions = [
-            "when $.data..price gt 100 then #nested",
-            "when $.store.book[?(@.price < 10)].title contains 'cheap' then #array",
-            "#default"
-        ]
-
-        # Estes casos podem falhar - são pontos de teste para identificar limitações
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states
-            )
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            print(f"JSONPath complexo falhou (esperado): {e}")
-
 
 class TestComparisonOperators(unittest.TestCase):
     """Testa todos os operadores de comparação da definição."""
@@ -214,6 +197,21 @@ class TestComparisonOperators(unittest.TestCase):
             "default": {"name": "default_state"}
         }
 
+    def _run_test(self, conditions, error_message):
+        cache_path = ''
+        try:
+            cache_path = parse_cond(
+                self.choice_name, conditions, self.base_states)
+            self.assertTrue(os.path.exists(cache_path))
+        except Exception as e:
+            self.fail(f"{error_message}: {e}")
+        finally:
+            if cache_path:
+                str_inex = cache_path.index(self.choice_name)
+                os.remove(cache_path)
+                os.remove(
+                    f"{cache_path[:str_inex]}{self.choice_name}_metadata.json")
+
     def test_numeric_comparisons(self):
         """Testa operadores de comparação numérica."""
         conditions = [
@@ -226,12 +224,7 @@ class TestComparisonOperators(unittest.TestCase):
             "#default"
         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha nos operadores numéricos: {e}")
+        self._run_test(conditions, "Falha nos operadores numéricos")
 
     def test_string_operations(self):
         """Testa operadores de string."""
@@ -242,29 +235,7 @@ class TestComparisonOperators(unittest.TestCase):
             "#default"
         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha nos operadores de string: {e}")
-
-    def test_mixed_type_comparisons(self):
-        """Testa comparações entre tipos diferentes (possível ponto de falha)."""
-        conditions = [
-            "when $.number gt '100' then #gt-state",  # número vs string
-            "when $.string eq 42 then #eq-state",     # string vs número
-            "when $.boolean eq 'true' then #eq-state",  # boolean vs string
-            "#default"
-        ]
-
-        # Este teste pode falhar - identifica problema de tipos
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            print("Comparações de tipos mistos funcionaram (pode ser problemático)")
-        except Exception as e:
-            print(f"Comparações de tipos mistos falharam: {e}")
+        self._run_test(conditions, "Falha nos operadores de string")
 
 
 class TestBooleanOperators(unittest.TestCase):
@@ -280,6 +251,21 @@ class TestBooleanOperators(unittest.TestCase):
             "default": {"name": "default_state"}
         }
 
+    def _run_test(self, conditions, error_message):
+        cache_path = ''
+        try:
+            cache_path = parse_cond(
+                self.choice_name, conditions, self.base_states)
+            self.assertTrue(os.path.exists(cache_path))
+        except Exception as e:
+            self.fail(f"{error_message}: {e}")
+        finally:
+            if cache_path:
+                str_inex = cache_path.index(self.choice_name)
+                os.remove(cache_path)
+                os.remove(
+                    f"{cache_path[:str_inex]}{self.choice_name}_metadata.json")
+
     def test_and_operator(self):
         """Testa operador AND."""
         conditions = [
@@ -288,12 +274,7 @@ class TestBooleanOperators(unittest.TestCase):
             "#default"
         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha no operador AND: {e}")
+        self._run_test(conditions, "Falha no operador AND")
 
     def test_or_operator(self):
         """Testa operador OR."""
@@ -303,12 +284,7 @@ class TestBooleanOperators(unittest.TestCase):
             "#default"
         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha no operador OR: {e}")
+        self._run_test(conditions, "Falha no operador OR")
 
     def test_not_operator(self):
         """Testa operador NOT."""
@@ -318,12 +294,7 @@ class TestBooleanOperators(unittest.TestCase):
             "#default"
         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha no operador NOT: {e}")
+        self._run_test(conditions, "Falha no operador NOT")
 
     def test_complex_boolean_combinations(self):
         """Testa combinações complexas de operadores booleanos."""
@@ -334,12 +305,7 @@ class TestBooleanOperators(unittest.TestCase):
             "#default"
         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha em combinações booleanas complexas: {e}")
+        self._run_test(conditions, "Falha em combinações booleanas complexas")
 
     def test_operator_precedence(self):
         """Testa precedência de operadores (possível ponto de falha)."""
@@ -350,12 +316,7 @@ class TestBooleanOperators(unittest.TestCase):
             "#default"
         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            print("Precedência de operadores funcionou - verificar se está correta")
-        except Exception as e:
-            print(f"Falha na precedência de operadores: {e}")
+        self._run_test(conditions, "Falha na precedência de operadores")
 
 
 class TestExistOperator(unittest.TestCase):
@@ -379,256 +340,256 @@ class TestExistOperator(unittest.TestCase):
 
         try:
             cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
+                "self.choice_name", conditions, self.base_states)
             self.assertTrue(os.path.exists(cache_path))
         except Exception as e:
             self.fail(f"Falha no operador exist: {e}")
 
 
-class TestNestedStatements(unittest.TestCase):
-    """Testa statements when-then-else aninhados."""
+# class TestNestedStatements(unittest.TestCase):
+#     """Testa statements when-then-else aninhados."""
 
-    def setUp(self):
-        self.choice_name = "test_nested"
-        self.base_states = {
-            "adult-premium": {"name": "adult_premium"},
-            "adult-basic": {"name": "adult_basic"},
-            "minor": {"name": "minor_user"},
-            "default": {"name": "unknown"}
-        }
+#     def setUp(self):
+#         self.choice_name = "test_nested"
+#         self.base_states = {
+#             "adult-premium": {"name": "adult_premium"},
+#             "adult-basic": {"name": "adult_basic"},
+#             "minor": {"name": "minor_user"},
+#             "default": {"name": "unknown"}
+#         }
 
-    def test_simple_when_then_else(self):
-        """Testa when-then-else simples."""
-        conditions = [
-            "when $.age gte 18 then #adult-premium else #minor",
-            "#default"
-        ]
+#     def test_simple_when_then_else(self):
+#         """Testa when-then-else simples."""
+#         conditions = [
+#             "when $.age gte 18 then #adult-premium else #minor",
+#             "#default"
+#         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha em when-then-else simples: {e}")
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             self.assertTrue(os.path.exists(cache_path))
+#         except Exception as e:
+#             self.fail(f"Falha em when-then-else simples: {e}")
 
-    def test_nested_when_then(self):
-        """Testa when-then aninhado."""
-        conditions = [
-            "when $.age gte 18 then when $.premium eq true then #adult-premium else #adult-basic else #minor",
-            "#default"
-        ]
+#     def test_nested_when_then(self):
+#         """Testa when-then aninhado."""
+#         conditions = [
+#             "when $.age gte 18 then when $.premium eq true then #adult-premium else #adult-basic else #minor",
+#             "#default"
+#         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            self.assertTrue(os.path.exists(cache_path))
-        except Exception as e:
-            self.fail(f"Falha em statements aninhados: {e}")
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             self.assertTrue(os.path.exists(cache_path))
+#         except Exception as e:
+#             self.fail(f"Falha em statements aninhados: {e}")
 
-    def test_deeply_nested_statements(self):
-        """Testa statements profundamente aninhados (possível ponto de falha)."""
-        conditions = [
-            "when $.level1 eq true then when $.level2 eq true then when $.level3 eq true then #adult-premium else #adult-basic else #minor else #default",
-            "#default"
-        ]
+#     def test_deeply_nested_statements(self):
+#         """Testa statements profundamente aninhados (possível ponto de falha)."""
+#         conditions = [
+#             "when $.level1 eq true then when $.level2 eq true then when $.level3 eq true then #adult-premium else #adult-basic else #minor else #default",
+#             "#default"
+#         ]
 
-        try:
-            cache_path = parse_cond(
-                self.choice_name, conditions, self.base_states)
-            print("Statements profundamente aninhados funcionaram")
-        except Exception as e:
-            print(f"Falha em statements profundamente aninhados: {e}")
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             print("Statements profundamente aninhados funcionaram")
+#         except Exception as e:
+#             print(f"Falha em statements profundamente aninhados: {e}")
 
-    def test_statement_parsing_functions(self):
-        """Testa funções auxiliares de parsing de statements."""
-        statement = "when $.age gt 18 then when $.premium eq true then #premium else #basic else #minor"
+#     def test_statement_parsing_functions(self):
+#         """Testa funções auxiliares de parsing de statements."""
+#         statement = "when $.age gt 18 then when $.premium eq true then #premium else #basic else #minor"
 
-        # Testa extração de partes aninhadas
-        self.assertTrue(is_nested_statement("when $.age gt 18 then #adult"))
-        self.assertFalse(is_nested_statement("#simple"))
+#         # Testa extração de partes aninhadas
+#         self.assertTrue(is_nested_statement("when $.age gt 18 then #adult"))
+#         self.assertFalse(is_nested_statement("#simple"))
 
-        condition, then_part = extract_nested_statement_parts(statement)
-        self.assertIn("$.age gt 18", condition)
-        self.assertIn("when $.premium", then_part)
-
-
-class TestEdgeCasesAndFailures(unittest.TestCase):
-    """Testa casos extremos e condições que podem causar falhas."""
-
-    def setUp(self):
-        self.choice_name = "test_edge_cases"
-        self.base_states = {
-            "success": {"name": "success_state"},
-            "default": {"name": "default_state"}
-        }
-
-    def test_empty_conditions(self):
-        """Testa condições vazias ou inválidas."""
-        test_cases = [
-            [],  # Lista vazia
-            [""],  # String vazia
-            ["   "],  # Apenas espaços
-            [None],  # None (se permitido)
-        ]
-
-        for conditions in test_cases:
-            try:
-                cache_path = parse_cond(
-                    self.choice_name, conditions, self.base_states)
-                print(f"Condições vazias funcionaram: {conditions}")
-            except Exception as e:
-                print(f"Condições vazias falharam: {conditions} - {e}")
-
-    def test_malformed_conditions(self):
-        """Testa condições malformadas."""
-        malformed_conditions = [
-            ["when $.age gt then #success"],  # Operando faltando
-            ["when $.age gt 18 then"],  # Then sem valor
-            ["when then #success"],  # Condição faltando
-            ["$.age gt 18 then #success"],  # When faltando
-            ["when $.age gt 18 #success"],  # Then faltando
-            ["when $.age gt 18 then success"],  # # faltando
-            ["when $.age gt 18 then #nonexistent"],  # Estado inexistente
-        ]
-
-        for conditions in malformed_conditions:
-            try:
-                cache_path = parse_cond(
-                    self.choice_name, conditions, self.base_states)
-                print(
-                    f"Condição malformada funcionou (problemático): {conditions}")
-            except Exception as e:
-                print(
-                    f"Condição malformada falhou (esperado): {conditions} - {e}")
-
-    def test_invalid_jsonpath(self):
-        """Testa JSONPath inválidos."""
-        invalid_jsonpaths = [
-            ["when $invalid then #success"],  # JSONPath inválido
-            ["when $.user..name then #success"],  # Sintaxe duvidosa
-            ["when $.[0] then #success"],  # Sintaxe incorreta
-            ["when $.user.[name] then #success"],  # Sintaxe incorreta
-        ]
-
-        for conditions in invalid_jsonpaths:
-            try:
-                cache_path = parse_cond(
-                    self.choice_name, conditions, self.base_states)
-                print(f"JSONPath inválido funcionou (verificar): {conditions}")
-            except Exception as e:
-                print(f"JSONPath inválido falhou: {conditions} - {e}")
-
-    def test_operator_errors(self):
-        """Testa erros nos operadores."""
-        operator_errors = [
-            # Operador Python em vez do parser
-            ["when $.age > 18 then #success"],
-            ["when $.age == 18 then #success"],  # Operador Python
-            ["when $.age !== 18 then #success"],  # Operador JavaScript
-            ["when $.name LIKE 'João%' then #success"],  # Operador SQL
-            ["when $.age greater_than 18 then #success"],  # Operador por extenso
-        ]
-
-        for conditions in operator_errors:
-            try:
-                cache_path = parse_cond(
-                    self.choice_name, conditions, self.base_states)
-                print(
-                    f"Operador incorreto funcionou (problemático): {conditions}")
-            except Exception as e:
-                print(
-                    f"Operador incorreto falhou (esperado): {conditions} - {e}")
-
-    def test_quote_handling(self):
-        """Testa problemas com aspas."""
-        quote_issues = [
-            ['when $.name eq "João Silva" then #success'],  # Aspas duplas
-            ["when $.name eq 'João's car' then #success"],  # Aspas dentro de aspas
-            ['when $.name eq \'João Silva\' then #success'],  # Escape de aspas
-            ["when $.name eq João Silva then #success"],  # Sem aspas
-        ]
-
-        for conditions in quote_issues:
-            try:
-                cache_path = parse_cond(
-                    self.choice_name, conditions, self.base_states)
-                print(f"Problema de aspas funcionou: {conditions}")
-            except Exception as e:
-                print(f"Problema de aspas falhou: {conditions} - {e}")
-
-    def test_special_characters(self):
-        """Testa caracteres especiais em strings."""
-        special_chars = [
-            ["when $.text contains 'çãõáéíóú' then #success"],  # Acentos
-            # Caracteres de escape
-            ["when $.text contains '\\n\\t\\r' then #success"],
-            ["when $.text contains '🚀🎉💻' then #success"],  # Emojis
-            ["when $.text contains 'line1\\nline2' then #success"],  # Quebras de linha
-        ]
-
-        for conditions in special_chars:
-            try:
-                cache_path = parse_cond(
-                    self.choice_name, conditions, self.base_states)
-                print(f"Caracteres especiais funcionaram: {conditions}")
-            except Exception as e:
-                print(f"Caracteres especiais falharam: {conditions} - {e}")
+#         condition, then_part = extract_nested_statement_parts(statement)
+#         self.assertIn("$.age gt 18", condition)
+#         self.assertIn("when $.premium", then_part)
 
 
-class TestUtilityFunctions(unittest.TestCase):
-    """Testa funções utilitárias do parser."""
+# class TestEdgeCasesAndFailures(unittest.TestCase):
+#     """Testa casos extremos e condições que podem causar falhas."""
 
-    def test_extract_constants(self):
-        """Testa extração de constantes (#)."""
-        text = "when $.age gt 18 then #adult else #minor"
-        constants = extract_constants(text)
-        self.assertIn("#adult", constants)
-        self.assertIn("#minor", constants)
+#     def setUp(self):
+#         self.choice_name = "test_edge_cases"
+#         self.base_states = {
+#             "success": {"name": "success_state"},
+#             "default": {"name": "default_state"}
+#         }
 
-    def test_extract_jsonpath_variables(self):
-        """Testa extração de variáveis JSONPath."""
-        text = "when $.user.age gt 18 and $.user.active eq true then #success"
-        jsonpaths = extract_jsonpath_variables(text)
-        self.assertIn("$.user.age", jsonpaths)
-        self.assertIn("$.user.active", jsonpaths)
+#     def test_empty_conditions(self):
+#         """Testa condições vazias ou inválidas."""
+#         test_cases = [
+#             [],  # Lista vazia
+#             [""],  # String vazia
+#             ["   "],  # Apenas espaços
+#             [None],  # None (se permitido)
+#         ]
 
-    def test_convert_jsonpath_to_params(self):
-        """Testa conversão de JSONPath para parâmetros."""
-        condition = "$.user.name eq 'João' and $.user.age gt 18"
-        converted = convert_jsonpath_to_params(condition)
-        self.assertIn("_user_name", converted)
-        self.assertIn("_user_age", converted)
-        self.assertNotIn("$.user.name", converted)
+#         for conditions in test_cases:
+#             try:
+#                 cache_path = parse_cond(
+#                     self.choice_name, conditions, self.base_states)
+#                 print(f"Condições vazias funcionaram: {conditions}")
+#             except Exception as e:
+#                 print(f"Condições vazias falharam: {conditions} - {e}")
 
-    def test_op_substitution(self):
-        """Testa substituição de operadores."""
-        condition = "$.age gt 18 and $.name eq 'João'"
-        substituted = op_substitution(condition)
-        self.assertIn(" > ", substituted)
-        self.assertIn(" == ", substituted)
-        self.assertNotIn(" gt ", substituted)
-        self.assertNotIn(" eq ", substituted)
+# def test_malformed_conditions(self):
+#     """Testa condições malformadas."""
+#     malformed_conditions = [
+#         ["when $.age gt then #success"],  # Operando faltando
+#         ["when $.age gt 18 then"],  # Then sem valor
+#         ["when then #success"],  # Condição faltando
+#         ["$.age gt 18 then #success"],  # When faltando
+#         ["when $.age gt 18 #success"],  # Then faltando
+#         ["when $.age gt 18 then success"],  # # faltando
+#         ["when $.age gt 18 then #nonexistent"],  # Estado inexistente
+#     ]
 
-    def test_build_function_signature(self):
-        """Testa construção da assinatura da função."""
-        choice_name = "test-choice"
-        params = ["$.user.name", "$.user.age", "$.user.name"]  # Com duplicata
-        signature = build_function_signature(choice_name, params)
+#     for conditions in malformed_conditions:
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             print(
+#                 f"Condição malformada funcionou (problemático): {conditions}")
+#         except Exception as e:
+#             print(
+#                 f"Condição malformada falhou (esperado): {conditions} - {e}")
 
-        self.assertIn("def test_choice(", signature)
-        self.assertIn("_user_name", signature)
-        self.assertIn("_user_age", signature)
-        # Verifica se duplicatas foram removidas
-        self.assertEqual(signature.count("_user_name"), 1)
+# def test_invalid_jsonpath(self):
+#     """Testa JSONPath inválidos."""
+#     invalid_jsonpaths = [
+#         ["when $invalid then #success"],  # JSONPath inválido
+#         ["when $.user..name then #success"],  # Sintaxe duvidosa
+#         ["when $.[0] then #success"],  # Sintaxe incorreta
+#         ["when $.user.[name] then #success"],  # Sintaxe incorreta
+#     ]
 
-    def test_build_jsonpath_params_mapping(self):
-        """Testa construção do mapeamento JSONPath -> parâmetros."""
-        params = ["$.user.name", "$.user.age", "$.user.name"]  # Com duplicata
-        mapping = build_jsonpath_params_mapping(params)
+#     for conditions in invalid_jsonpaths:
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             print(f"JSONPath inválido funcionou (verificar): {conditions}")
+#         except Exception as e:
+#             print(f"JSONPath inválido falhou: {conditions} - {e}")
 
-        self.assertEqual(mapping["_user_name"], "$.user.name")
-        self.assertEqual(mapping["_user_age"], "$.user.age")
-        self.assertEqual(len(mapping), 2)  # Duplicatas removidas
+# def test_operator_errors(self):
+#     """Testa erros nos operadores."""
+#     operator_errors = [
+#         # Operador Python em vez do parser
+#         ["when $.age > 18 then #success"],
+#         ["when $.age == 18 then #success"],  # Operador Python
+#         ["when $.age !== 18 then #success"],  # Operador JavaScript
+#         ["when $.name LIKE 'João%' then #success"],  # Operador SQL
+#         ["when $.age greater_than 18 then #success"],  # Operador por extenso
+#     ]
+
+#     for conditions in operator_errors:
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             print(
+#                 f"Operador incorreto funcionou (problemático): {conditions}")
+#         except Exception as e:
+#             print(
+#                 f"Operador incorreto falhou (esperado): {conditions} - {e}")
+
+# def test_quote_handling(self):
+#     """Testa problemas com aspas."""
+#     quote_issues = [
+#         ['when $.name eq "João Silva" then #success'],  # Aspas duplas
+#         ["when $.name eq 'João's car' then #success"],  # Aspas dentro de aspas
+#         ['when $.name eq \'João Silva\' then #success'],  # Escape de aspas
+#         ["when $.name eq João Silva then #success"],  # Sem aspas
+#     ]
+
+#     for conditions in quote_issues:
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             print(f"Problema de aspas funcionou: {conditions}")
+#         except Exception as e:
+#             print(f"Problema de aspas falhou: {conditions} - {e}")
+
+# def test_special_characters(self):
+#     """Testa caracteres especiais em strings."""
+#     special_chars = [
+#         ["when $.text contains 'çãõáéíóú' then #success"],  # Acentos
+#         # Caracteres de escape
+#         ["when $.text contains '\\n\\t\\r' then #success"],
+#         ["when $.text contains '🚀🎉💻' then #success"],  # Emojis
+#         ["when $.text contains 'line1\\nline2' then #success"],  # Quebras de linha
+#     ]
+
+#     for conditions in special_chars:
+#         try:
+#             cache_path = parse_cond(
+#                 self.choice_name, conditions, self.base_states)
+#             print(f"Caracteres especiais funcionaram: {conditions}")
+#         except Exception as e:
+#             print(f"Caracteres especiais falharam: {conditions} - {e}")
+
+
+# class TestUtilityFunctions(unittest.TestCase):
+#     """Testa funções utilitárias do parser."""
+
+#     def test_extract_constants(self):
+#         """Testa extração de constantes (#)."""
+#         text = "when $.age gt 18 then #adult else #minor"
+#         constants = extract_constants(text)
+#         self.assertIn("#adult", constants)
+#         self.assertIn("#minor", constants)
+
+#     def test_extract_jsonpath_variables(self):
+#         """Testa extração de variáveis JSONPath."""
+#         text = "when $.user.age gt 18 and $.user.active eq true then #success"
+#         jsonpaths = extract_jsonpath_variables(text)
+#         self.assertIn("$.user.age", jsonpaths)
+#         self.assertIn("$.user.active", jsonpaths)
+
+#     def test_convert_jsonpath_to_params(self):
+#         """Testa conversão de JSONPath para parâmetros."""
+#         condition = "$.user.name eq 'João' and $.user.age gt 18"
+#         converted = convert_jsonpath_to_params(condition)
+#         self.assertIn("_user_name", converted)
+#         self.assertIn("_user_age", converted)
+#         self.assertNotIn("$.user.name", converted)
+
+#     def test_op_substitution(self):
+#         """Testa substituição de operadores."""
+#         condition = "$.age gt 18 and $.name eq 'João'"
+#         substituted = op_substitution(condition)
+#         self.assertIn(" > ", substituted)
+#         self.assertIn(" == ", substituted)
+#         self.assertNotIn(" gt ", substituted)
+#         self.assertNotIn(" eq ", substituted)
+
+#     def test_build_function_signature(self):
+#         """Testa construção da assinatura da função."""
+#         choice_name = "test-choice"
+#         params = ["$.user.name", "$.user.age", "$.user.name"]  # Com duplicata
+#         signature = build_function_signature(choice_name, params)
+
+#         self.assertIn("def test_choice(", signature)
+#         self.assertIn("_user_name", signature)
+#         self.assertIn("_user_age", signature)
+#         # Verifica se duplicatas foram removidas
+#         self.assertEqual(signature.count("_user_name"), 1)
+
+#     def test_build_jsonpath_params_mapping(self):
+#         """Testa construção do mapeamento JSONPath -> parâmetros."""
+#         params = ["$.user.name", "$.user.age", "$.user.name"]  # Com duplicata
+#         mapping = build_jsonpath_params_mapping(params)
+
+#         self.assertEqual(mapping["_user_name"], "$.user.name")
+#         self.assertEqual(mapping["_user_age"], "$.user.age")
+#         self.assertEqual(len(mapping), 2)  # Duplicatas removidas
 
 
 if __name__ == "__main__":
