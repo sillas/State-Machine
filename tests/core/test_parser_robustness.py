@@ -334,13 +334,14 @@ class TestExistOperator(unittest.TestCase):
         conditions = [
             "when exist $.optional_field then #exists",
             "when exist $.user.profile then #exists",
+            "when exist $.error and $.error eq 'teste' then #exists",
             "when exist $.data[*].id then #exists",
             "#default"
         ]
 
         try:
             cache_path = parse_cond(
-                "self.choice_name", conditions, self.base_states)
+                self.choice_name, conditions, self.base_states)
             self.assertTrue(os.path.exists(cache_path))
         except Exception as e:
             self.fail(f"Falha no operador exist: {e}")

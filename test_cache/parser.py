@@ -4,6 +4,7 @@ import hashlib
 import os
 import json
 from jsonpath_ng import parse
+# from core.exceptions import JSONPathNotFound
 from test_cache.logger import _i
 
 
@@ -20,7 +21,8 @@ def jsonpath_query(obj: Any, expr: str) -> Any:
 
     matches = jsonpath_expr.find(obj)
     if not matches:
-        raise ValueError(f"JSONPath expression not matches: {expr}")
+        # raise JSONPathNotFound(f"JSONPath expression not matches: {expr}")
+        return '__not_matches__'
 
     result = [match.value for match in matches]
 
@@ -440,6 +442,13 @@ def process_statement(statement: str, indent_level: int = 1) -> str:
     # Regular when-then statement
     condition, then_part = extract_nested_statement_parts(statement)
     condition = op_substitution(condition)
+
+    while 'exist ' in condition:
+        i = condition.index('exist ')
+        js_path = condition[i+6:].split(' ', 1)[0]
+        term = f"{js_path} != '__not_matches__'"
+        subst = f"exist {js_path}"
+        condition = condition.replace(subst, term)
 
     result = f"{indent}if {condition}:\n"
 
