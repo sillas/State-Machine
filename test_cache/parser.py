@@ -7,6 +7,8 @@ from jsonpath_ng import parse
 
 from test_cache.logger import _i
 
+# utils
+
 
 def jsonpath_query(obj: Any, expr: str) -> Any:
     """
@@ -31,8 +33,6 @@ def jsonpath_query(obj: Any, expr: str) -> Any:
 
     return result
 
-# Cache management functions
-
 
 def _generate_hash(choice_name: str, conditions: list[str], states: dict) -> str:
     """Generate a hash for the choice configuration to detect changes"""
@@ -50,25 +50,35 @@ def _generate_hash(choice_name: str, conditions: list[str], states: dict) -> str
     # Generate SHA256 hash
     return hashlib.sha256(json_str.encode()).hexdigest()
 
+# Cache management functions
+
+
+def _get_path(choice_name, filename) -> str:
+
+    cache_dir: str = os.path.join(
+        os.path.dirname(__file__),
+        'conditions_cache'
+    )
+
+    safe_choice_name: str = choice_name.replace('-', '_')
+    filename = f"{safe_choice_name}_{filename}"
+
+    return os.path.join(cache_dir, filename)
+
 
 def _get_cache_file_path(choice_name: str, content_hash: str) -> str:
     """Get the path for the cached function file"""
-    cache_dir = os.path.join(os.path.dirname(__file__), 'conditions_cache')
-    safe_choice_name = choice_name.replace('-', '_')
-    filename = f"{safe_choice_name}_{content_hash[:8]}.py"
-    return os.path.join(cache_dir, filename)
+    return _get_path(choice_name, f"{content_hash[:8]}.py")
 
 
 def _get_cache_metadata_path(choice_name: str) -> str:
     """Get the path for the cache metadata file"""
-    cache_dir = os.path.join(os.path.dirname(__file__), 'conditions_cache')
-    safe_choice_name = choice_name.replace('-', '_')
-    filename = f"{safe_choice_name}_metadata.json"
-    return os.path.join(cache_dir, filename)
+    return _get_path(choice_name, "metadata.json")
 
 
 def _is_cache_valid(choice_name: str, content_hash: str) -> bool:
     """Check if cache is valid for the given choice and hash"""
+
     metadata_path = _get_cache_metadata_path(choice_name)
     cache_file_path = _get_cache_file_path(choice_name, content_hash)
 
@@ -196,6 +206,8 @@ def create_jsonpath_wrapper(cached_function, jsonpath_params: dict[str, str]):
         return cached_function(**params)
 
     return wrapper
+
+# build
 
 
 def _match(pattern, text) -> list[str]:

@@ -5,15 +5,15 @@ from test_cache.logger import _i
 def teste():
 
     statements = [
-        "when $.user.age lt 25 then #young",
-        "when $.user.age gt 50 then #old",
-        "#mid"
+        "when $.user.age lt 25 then #novo",
+        "when $.user.age gt 50 then #velho",
+        "#adulto"
     ]
 
     states = {
-        "young": {"name": "young"},
-        "old": {"name": "old"},
-        "mid": {"name": "mid"}
+        "novo": {"name": "novo"},
+        "velho": {"name": "velho"},
+        "adulto": {"name": "adulto"}
     }
 
     ch = Choice2('choice_teste', statements, states)
