@@ -4,7 +4,7 @@ import hashlib
 import os
 import json
 from jsonpath_ng import parse
-# from core.exceptions import JSONPathNotFound
+
 from test_cache.logger import _i
 
 
@@ -187,6 +187,7 @@ def create_jsonpath_wrapper(cached_function, jsonpath_params: dict[str, str]):
             try:
                 value = jsonpath_query(data, jsonpath_expr)
                 params[param_name] = value
+
             except ValueError as e:
                 # Handle missing values - you might want to use default values or raise
                 _i(f"Warning: Could not extract {jsonpath_expr}: {e}")
@@ -244,6 +245,7 @@ def convert_jsonpath_to_params(condition) -> str:
     # Convert boolean literals
     condition = condition.replace(' true', ' True')
     condition = condition.replace(' false', ' False')
+    condition = condition.replace(' null', ' None')
 
     return condition
 
@@ -489,7 +491,7 @@ def if_then_builder(function_builder, conditions) -> str:
 - list: [] | Json-like list
 - dict: {} | Json-like dict
 - JSONPath: $.term # JSONPath string
-- term: JSONPath | literal string | literal number | list | dict | true | false.
+- term: JSONPath | literal string | literal number | list | dict | true | false | null.
 - op: Comparison operators (gt, lt, eq, neq, gte, lte, contains, starts_with, ends_with).
 - bool_op: Boolean operators (and, or).
 - comparison: term op term

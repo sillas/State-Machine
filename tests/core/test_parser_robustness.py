@@ -339,12 +339,21 @@ class TestExistOperator(unittest.TestCase):
             "#default"
         ]
 
+        cache_path = ''
+
         try:
             cache_path = parse_cond(
                 self.choice_name, conditions, self.base_states)
             self.assertTrue(os.path.exists(cache_path))
         except Exception as e:
             self.fail(f"Falha no operador exist: {e}")
+
+        try:
+            p = f"test_cache/conditions_cache/{cache_path.split('/')[-1]}"
+            print(p)
+
+        except Exception as e:
+            self.fail(f"Falha na execucao do operador exist: {e}")
 
 
 # class TestNestedStatements(unittest.TestCase):
@@ -591,7 +600,6 @@ class TestExistOperator(unittest.TestCase):
 #         self.assertEqual(mapping["_user_name"], "$.user.name")
 #         self.assertEqual(mapping["_user_age"], "$.user.age")
 #         self.assertEqual(len(mapping), 2)  # Duplicatas removidas
-
 
 if __name__ == "__main__":
     # Executa todos os testes
