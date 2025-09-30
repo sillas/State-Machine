@@ -5,7 +5,6 @@ import hashlib
 import importlib.util
 from typing import Any
 from jsonpath_ng import parse
-
 from logging_config import _i, _w
 
 
@@ -13,18 +12,23 @@ class Utils:
 
     @staticmethod
     def _match(pattern, text) -> list[str]:
-
         matches = re.findall(pattern, text)
         return matches
 
     @staticmethod
     def extract_constants(text: str) -> list[str]:
+        """
+        Extracts all constants from the given text that match the pattern of a '#' followed by non-whitespace characters.
+        """
 
         pattern = r'\#\S*'
         return Utils._match(pattern, text)
 
     @staticmethod
     def extract_jsonpath_variables(text: str) -> list[str]:
+        """
+        Extracts all unique JSONPath variables from the given text.
+        """
         pattern = r'\$\.\S*'
         return list(set(Utils._match(pattern, text)))
 
@@ -105,6 +109,16 @@ class Utils:
 
 
 class CacheHandler:
+    """
+    CacheHandler is responsible for managing the caching of dynamically generated Python functions based on specific choice configurations.
+
+    Attributes:
+        name (str): The name of the choice or function to be cached.
+        conditions (list[str]): A list of conditions that define the choice configuration.
+        states (dict[str, Any]): A dictionary representing the states relevant to the choice.
+        content_hash (str): The SHA256 hash representing the current configuration for cache validation.
+    """
+
     def __init__(self, name: str, conditions: list[str], states: dict[str, Any]) -> None:
         self.name = name
         self.conditions = conditions
@@ -113,19 +127,21 @@ class CacheHandler:
 
     def generate_hash(self) -> None:
         """Generate a hash for the choice configuration to detect changes"""
+
         # Create a hashable representation of the input
         data_to_hash = {
             'choice_name': self.name,
             'conditions': self.conditions
         }
 
-        # Convert to JSON string for consistent hashing
         json_str = json.dumps(data_to_hash, sort_keys=True)
 
         # Generate SHA256 hash
         self.content_hash = hashlib.sha256(json_str.encode()).hexdigest()
 
     def get_path_from_cache(self) -> str | None:
+        """Returns the cache file path if a valid cached version exists, otherwise None."""
+
         metadata = self.is_cache_valid()
 
         if metadata:
@@ -151,7 +167,6 @@ class CacheHandler:
 
         cache_file_path = self._get_cache_file_path()
 
-        # Check if cache file exist
         if not os.path.exists(cache_file_path):
             return None
 
@@ -169,6 +184,7 @@ class CacheHandler:
         return self._get_path(f"{self.content_hash[:8]}.py")
 
     def _get_path(self, filename) -> str:
+
         cache_dir: str = os.path.join(
             os.path.dirname(__file__),
             'conditions_cache'
@@ -184,13 +200,11 @@ class CacheHandler:
         name = self.name
         cache_dir = os.path.join(os.path.dirname(__file__), 'conditions_cache')
 
-        # Ensure cache directory exists
         os.makedirs(cache_dir, exist_ok=True)
 
         cache_file_path = self._get_cache_file_path()
         metadata_path = self._get_path("metadata.json")
 
-        # Clean up old cache files for this choice
         self._cleanup_old_cache()
 
         # Save the function code
@@ -320,23 +334,25 @@ class ConditionParser:
         return cache_file_path
 
     def _build_function_signature(self, paramns) -> str:
-        # Remove duplicates while preserving order
+        """
+        Builds a Python function signature string using sanitized parameter names.
+        """
+
         unique_params = []
 
         for p in paramns:
             param_name = re.sub(r'[^a-zA-Z0-9_]', '_', p[1:])
-
-            if param_name not in unique_params:
-                unique_params.append(param_name)
+            unique_params.append(param_name)
 
         return f"\ndef {self.name.replace('-', '_')}({', '.join(unique_params)}):\n"
 
     def _constants_builder(self, constants) -> str:
-        # Remove duplicates while preserving order
-        unique_constants = list(dict.fromkeys(
-            cte[1:] for cte in constants))
+        """Build constants declarations"""
 
-        # Build constants declarations
+        unique_constants = list(
+            dict.fromkeys(cte[1:] for cte in constants)
+        )
+
         const_lines = [
             f"    {c.replace('-', '_')} = '{self.states[c]['name']}'\n"
             for c in unique_constants
@@ -345,7 +361,7 @@ class ConditionParser:
         return '\n' + ''.join(const_lines) + '\n'
 
     def _if_then_else_builder(self, function_builder) -> str:
-        """Build if-then statements for all conditions"""
+        """Build if-then-else statements for all conditions"""
 
         conditions = self.conditions
         condition_size = len(conditions) - 1
@@ -406,13 +422,13 @@ class ConditionParser:
         return result
 
     def _extract_nested_statement_parts(self, statement: str) -> tuple[str, str]:
-        """Extract condition and then-part from a when-then statement
+        """
+        Extract condition and then-part from a when-then statement
         Returns (condition, then_part)
         """
         # Simple regex approach first - works for most cases
         # Pattern to match: when (condition) then (then_part)
         # But we need to be careful with nested statements
-
         match = re.search(r'when\s+(.*?)\s+then\s+(.*)', statement, re.DOTALL)
         if match:
             condition = match.group(1).strip()
