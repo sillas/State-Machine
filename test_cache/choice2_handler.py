@@ -16,6 +16,7 @@ class Choice2(State):
         super().__init__(name=name, next_state=None, type=StateType.CHOICE, timeout=1)
 
         while self.jsonpath_wrapper is None:
+
             try:
                 self.jsonpath_wrapper = self.cache_handler.load_cached_function()
                 break
@@ -26,6 +27,7 @@ class Choice2(State):
                 condition_handler.parse()
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
+
         if self.jsonpath_wrapper:
             return self.jsonpath_wrapper(event)
 

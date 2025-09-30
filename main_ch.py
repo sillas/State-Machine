@@ -5,7 +5,7 @@ from test_cache.logger import _i
 def teste():
 
     statements = [
-        "when $.user.age lt 25 then #novo",
+        "when $.user.age lt 24 then #novo",
         "when $.user.age gt 50 then #velho",
         "#adulto"
     ]
@@ -20,8 +20,11 @@ def teste():
 
     test_data = {"user": {"age": 60, "status": "active"}}
     result = ch.handler(test_data, {})
+    _i(f"RESULT 1: {result}")
 
-    _i(f"RESULT: {result}")
+    test_data = {"user": {"age": 10, "status": "active"}}
+    result = ch.handler(test_data, {})
+    _i(f"RESULT 2: {result}")
 
 
 if __name__ == "__main__":

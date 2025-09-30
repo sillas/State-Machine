@@ -119,14 +119,13 @@ class CacheHandler:
         self.content_hash = hashlib.sha256(json_str.encode()).hexdigest()
 
     def get_path_from_cache(self) -> str | None:
-        cache_file_path = self.is_cache_valid()
+        metadata = self.is_cache_valid()
 
-        if cache_file_path:
+        if metadata:
+            cache_file_path = metadata['cache_file']
             cached_code = self._load_from_cache(cache_file_path)
             if cached_code:
                 _i(f"Using cached function for '{self.name}' (hash: {self.content_hash[:8]})")
-                _i("Cached function code:")
-                _i(cached_code)
                 return cache_file_path
 
         return None
@@ -140,22 +139,22 @@ class CacheHandler:
         except FileNotFoundError:
             return ""
 
-    def is_cache_valid(self) -> str | None:
+    def is_cache_valid(self) -> dict[str, Any] | None:
         """Check if cache is valid for the given choice and hash"""
 
-        metadata_path = self._get_path("metadata.json")
         cache_file_path = self._get_cache_file_path()
 
-        # Check if both metadata and cache file exist
-        if not os.path.exists(metadata_path) or not os.path.exists(cache_file_path):
+        # Check if cache file exist
+        if not os.path.exists(cache_file_path):
             return None
 
+        metadata_path = self._get_path("metadata.json")
         try:
             with open(metadata_path, 'r') as f:
                 metadata = json.load(f)
 
-            return cache_file_path if metadata.get('hash') == self.content_hash else None
-        except (json.JSONDecodeError, KeyError):
+            return metadata if metadata.get('hash') == self.content_hash else None
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
             return None
 
     def _get_cache_file_path(self) -> str:
@@ -226,23 +225,13 @@ class CacheHandler:
                     except OSError:
                         pass
 
-    def _load_cache_metadata(self) -> dict[str, Any]:
-        """Load the cache metadata for a choice"""
-        metadata_path = self._get_path("metadata.json")
-
-        try:
-            with open(metadata_path, 'r') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            return {}
-
     def load_cached_function(self):
         """
         Load a cached function from a Python file
         """
 
-        metadata = self._load_cache_metadata()
-        if not metadata:
+        metadata = self.is_cache_valid()
+        if metadata is None:
             raise ValueError(f"No metadata found for choice: {self.name}")
 
         cache_file_path = metadata['cache_file']
