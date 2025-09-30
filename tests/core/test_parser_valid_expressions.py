@@ -16,7 +16,7 @@ Definição testada:
 - sttm: [when condition] then [sttm | term else sttm | term]
 """
 
-from test_cache.parser import (  # type: ignore
+from core.utils.parser import (  # type: ignore
     parse_cond,
     extract_constants,
     extract_jsonpath_variables,

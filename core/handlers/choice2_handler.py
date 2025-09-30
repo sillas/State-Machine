@@ -1,6 +1,6 @@
 from typing import Any
 from core.utils.state_base import State, StateType
-from test_cache.parser import CacheHandler
+from core.utils.parser import CacheHandler
 
 
 class Choice2(State):
@@ -22,7 +22,7 @@ class Choice2(State):
                 break
 
             except Exception:
-                from test_cache.parser import ConditionParser
+                from core.utils.parser import ConditionParser
                 condition_handler = ConditionParser(self.cache_handler)
                 condition_handler.parse()
 

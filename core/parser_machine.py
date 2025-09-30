@@ -1,17 +1,12 @@
 
 from pathlib import Path
 from typing import Any, Callable
-import logging
 import yaml
-from logging_config import setup_logging
 from core.handlers.choice_handler import Choice
 from core.handlers.lambda_handler import Lambda
 from core.handlers.parallel_handler import Parallel
 from core.state_machine import StateMachine
-
-
-setup_logging()
-logger = logging.getLogger(__name__)
+from logging_config import _e, _i
 
 
 class StateConfigurationProcessor:
@@ -33,7 +28,7 @@ class StateConfigurationProcessor:
             self.this_state = self.state_definitions[current_state_key]
             self.next_state = self.state_definitions.get(next_state_key or '')
         except KeyError as e:
-            logger.error(f"State key not found: {e}")
+            _e(f"State key not found: {e}")
             raise
 
     def _process_lambda_state(self) -> None:
@@ -44,7 +39,7 @@ class StateConfigurationProcessor:
             lambda_file_path = Path(lambda_full_path)
 
             if not lambda_file_path.exists():
-                logger.error(f"Lambda {lambda_full_path} not found.")
+                _e(f"Lambda {lambda_full_path} not found.")
                 raise ModuleNotFoundError(
                     f"Lambda {lambda_full_path} not found.")
 
@@ -59,9 +54,9 @@ class StateConfigurationProcessor:
                 lambda_config['timeout'] = int(timeout_value)
 
             self.execution_blocks.append(Lambda(**lambda_config))
-            logger.info(f"Lambda state processed: {state_name}")
+            _i(f"Lambda state processed: {state_name}")
         except Exception as e:
-            logger.error(f"Error processing lambda state: {e}")
+            _e(f"Error processing lambda state: {e}")
             raise
 
     def _process_choice_state(self, conditions: str) -> None:
@@ -71,7 +66,7 @@ class StateConfigurationProcessor:
             conditions_list = self.variables.get(conditions)
 
             if conditions_list is None:
-                logger.error(
+                _e(
                     f"Conditions for choice {choice_name} do not exist!")
                 raise ValueError(
                     f"Conditions for choice {choice_name} do not exist!")
@@ -84,16 +79,16 @@ class StateConfigurationProcessor:
                         word, f"'{state_name}'")
 
             self.execution_blocks.append(Choice(choice_name, conditions_list))
-            logger.info(f"Choice state processed: {choice_name}")
+            _i(f"Choice state processed: {choice_name}")
         except Exception as e:
-            logger.error(f"Error processing choice state: {e}")
+            _e(f"Error processing choice state: {e}")
             raise
 
     def _process_parallel_state(self, parse_machine: Callable, machine_definitions: dict[str, Any] | None) -> None:
         """Process a parallel state and append it to execution blocks."""
         try:
             if machine_definitions is None:
-                logger.error("machine_definitions is None in parallel state.")
+                _e("machine_definitions is None in parallel state.")
                 raise ValueError(
                     "machine_definitions is None in parallel state.")
 
@@ -109,9 +104,9 @@ class StateConfigurationProcessor:
             }
 
             self.execution_blocks.append(Parallel(**parallel_conf))
-            logger.info(f"Parallel state processed: {self.this_state['name']}")
+            _i(f"Parallel state processed: {self.this_state['name']}")
         except Exception as e:
-            logger.error(f"Error processing parallel state: {e}")
+            _e(f"Error processing parallel state: {e}")
             raise
 
     def _extract_hash_words(self, text: str) -> list[str]:
@@ -137,10 +132,10 @@ class StateMachineParser:
             data = self._load_data(machine_definitions_file)
             self.machine = data[data['entry']]
             self.data = data
-            logger.info(
+            _i(
                 f"Loaded machine definitions from {machine_definitions_file}")
         except Exception as e:
-            logger.error(f"Error initializing StateMachineParser: {e}")
+            _e(f"Error initializing StateMachineParser: {e}")
             raise
 
     def parse(self) -> StateMachine:
@@ -148,7 +143,7 @@ class StateMachineParser:
         try:
             return self.parse_machine(self.machine)
         except Exception as e:
-            logger.error(f"Error parsing machine: {e}")
+            _e(f"Error parsing machine: {e}")
             raise
 
     def parse_machine(self, machine_config: dict[str, Any]) -> StateMachine:
@@ -176,14 +171,14 @@ class StateMachineParser:
                     elif state_type == 'parallel':
                         method(self.parse_machine, self.data)
                 except Exception as e:
-                    logger.error(
+                    _e(
                         f"Error processing state '{current_state}': {e}")
                     raise
 
-            logger.info(f"State machine '{name}' parsed successfully.")
+            _i(f"State machine '{name}' parsed successfully.")
             return StateMachine(name, state_processor.execution_blocks)
         except Exception as e:
-            logger.error(f"Error parsing machine config: {e}")
+            _e(f"Error parsing machine config: {e}")
             raise
 
     def _load_data(self, machine_definitions_file: str):
@@ -192,14 +187,14 @@ class StateMachineParser:
             with open(machine_definitions_file, 'r') as file:
                 return yaml.safe_load(file)
         except FileNotFoundError:
-            logger.error(f"Error: {machine_definitions_file} not found.")
+            _e(f"Error: {machine_definitions_file} not found.")
             raise
         except yaml.YAMLError as e:
-            logger.error(f"Error parsing YAML: {e}")
+            _e(f"Error parsing YAML: {e}")
             raise
         except KeyError as e:
-            logger.error(f"Key error! {str(e)}")
+            _e(f"Key error! {str(e)}")
             raise
         except Exception as e:
-            logger.error(f"Error: {str(e)}")
+            _e(f"Error: {str(e)}")
             raise

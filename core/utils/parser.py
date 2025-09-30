@@ -5,7 +5,8 @@ import hashlib
 import importlib.util
 from typing import Any
 from jsonpath_ng import parse
-from test_cache.logger import _i
+
+from logging_config import _i
 
 
 class Utils:

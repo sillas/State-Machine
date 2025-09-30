@@ -3,7 +3,7 @@ Testes focados na criação correta de funções para expressões válidas.
 Este teste verifica se o parser gera código Python válido, sem executar as funções.
 """
 
-from test_cache.parser import parse_cond, extract_constants, extract_jsonpath_variables, op_substitution  # type: ignore
+from core.utils.parser import parse_cond, extract_constants, extract_jsonpath_variables, op_substitution  # type: ignore
 import os
 import sys
 import unittest

@@ -1,4 +1,4 @@
-from test_cache.choice2_handler import Choice2
+from core.handlers.choice2_handler import Choice2
 from test_cache.logger import _i
 
 
