@@ -34,13 +34,19 @@ def example_parallel_machine():
 def example_machine():
     work_dir = "lambdas/example"
 
+    states = {
+        'center_state': {'name: center_state'},
+        'outer_state': {'name: outer_state'},
+        'in_or_out': {'name: in_or_out'},
+    }
+
     if__in_or_out__statements = [
         f"when ($.value gt 10) and ($.value lt 53) then 'center_state' else 'outer_state'"
     ]
 
     machine_tree = [
         Lambda("center_state", "in_or_out", work_dir),  # Input First
-        Choice("in_or_out", if__in_or_out__statements),
+        Choice("in_or_out", if__in_or_out__statements, states),
         Lambda("outer_state", None, work_dir),  # Output!
     ]
 

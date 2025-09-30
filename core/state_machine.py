@@ -93,17 +93,18 @@ class StateMachine:
                 )
                 raise StateNotFoundError(f"State {next_state} does not exist!")
 
-            _i(
-                {
-                    "message": f"Entering state {next_state}",
-                    "input": event,
-                    **context
-                }
-            )
+            _i(f"\n-------\nEntering state {next_state} -> {event}")
+            # _i(
+            #     {
+            #         "message": f"Entering state {next_state}",
+            #         "input": event,
+            #         **context
+            #     }
+            # )
 
             try:
 
-                step_start_time = t.time()
+                # step_start_time = t.time()
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     # ----------------------------------------------ACT
@@ -127,27 +128,29 @@ class StateMachine:
 
                 next_state = step_lambda.next_state
                 # ----------------------------------------
-                step_duration = t.time() - step_start_time
+                # step_duration = t.time() - step_start_time
 
-                _i(
-                    {
-                        "message": f"Exiting state {context['state_name']}",
-                        "execution_id": execution_id,
-                        "state_name": context["state_name"],
-                        "output": event,
-                        "duration": step_duration,
-                    }
-                )
+                _i(f"Exiting state {context['state_name']} -> {event}")
+                # _i(
+                #     {
+                #         "message": f"Exiting state {context['state_name']}",
+                #         "execution_id": execution_id,
+                #         "state_name": context["state_name"],
+                #         "output": event,
+                #         "duration": step_duration,
+                #     }
+                # )
 
                 if next_state is None:
-                    _i(
-                        {
-                            "message": "Execution completed successfully.",
-                            "execution_id": execution_id,
-                            "final_output": event,
-                            "total_duration": t.time() - start_time
-                        }
-                    )
+                    _i("\nExecution completed successfully.\n-----------------------------")
+                    # _i(
+                    #     {
+                    #         "message": "Execution completed successfully.",
+                    #         "execution_id": execution_id,
+                    #         "final_output": event,
+                    #         "total_duration": t.time() - start_time
+                    #     }
+                    # )
                     return event
 
                 context["state_name"] = next_state

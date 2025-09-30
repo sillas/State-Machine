@@ -24,4 +24,4 @@ example-machine:
   
   vars:
     $ioo-statements:
-      - "when ($.value gt 10) and ($.value lt 53) then #center-state else #outer-state"
+      - "when exist $.value and ($.value gt 10) and ($.value lt 55) then #center-state else #outer-state"

@@ -6,7 +6,7 @@ import importlib.util
 from typing import Any
 from jsonpath_ng import parse
 
-from logging_config import _i
+from logging_config import _i, _w
 
 
 class Utils:
@@ -26,7 +26,7 @@ class Utils:
     @staticmethod
     def extract_jsonpath_variables(text: str) -> list[str]:
         pattern = r'\$\.\S*'
-        return Utils._match(pattern, text)
+        return list(set(Utils._match(pattern, text)))
 
     @staticmethod
     def jsonpath_query(obj: Any, expr: str) -> Any:
@@ -66,6 +66,12 @@ class Utils:
         return mapping
 
     @staticmethod
+    def remove_single_word_parentheses(text):
+        """Remove parentheses that surround only a single word (with optional whitespace)"""
+        pattern = r'\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)'
+        return re.sub(pattern, r'\1', text)
+
+    @staticmethod
     def create_jsonpath_wrapper(cached_function, jsonpath_params: dict[str, str]):
         """
         Create a wrapper function that accepts raw data and uses JSONPath to extract parameters
@@ -90,7 +96,7 @@ class Utils:
 
                 except ValueError as e:
                     # Handle missing values - you might want to use default values or raise
-                    _i(f"Warning: Could not extract {jsonpath_expr}: {e}")
+                    _w(f"Utils - create_jsonpath_wrapper - wrapper - Warning: Could not extract {jsonpath_expr}: {e}")
                     params[param_name] = None
 
             return cached_function(**params)
@@ -126,7 +132,7 @@ class CacheHandler:
             cache_file_path = metadata['cache_file']
             cached_code = self._load_from_cache(cache_file_path)
             if cached_code:
-                _i(f"Using cached function for '{self.name}' (hash: {self.content_hash[:8]})")
+                _i(f"CacheHandler - get_path_from_cache - Using cached function for '{self.name}' (hash: {self.content_hash[:8]})")
                 return cache_file_path
 
         return None
@@ -163,7 +169,6 @@ class CacheHandler:
         return self._get_path(f"{self.content_hash[:8]}.py")
 
     def _get_path(self, filename) -> str:
-
         cache_dir: str = os.path.join(
             os.path.dirname(__file__),
             'conditions_cache'
@@ -222,7 +227,7 @@ class CacheHandler:
                     old_file_path = os.path.join(cache_dir, filename)
                     try:
                         os.remove(old_file_path)
-                        _i(f"Removed old cache file: {old_file_path}")
+                        _i(f"CacheHandler - _cleanup_old_cache - Removed old cache file: {old_file_path}")
                     except OSError:
                         pass
 
@@ -230,10 +235,10 @@ class CacheHandler:
         """
         Load a cached function from a Python file
         """
-
         metadata = self.is_cache_valid()
         if metadata is None:
-            raise ValueError(f"No metadata found for choice: {self.name}")
+            raise ValueError(
+                f"CacheHandler - load_cached_function - No metadata found for choice: {self.name}")
 
         cache_file_path = metadata['cache_file']
 
@@ -241,7 +246,8 @@ class CacheHandler:
             "cached_module", cache_file_path)
 
         if spec is None or spec.loader is None:
-            raise ImportError(f"Could not load spec from {cache_file_path}")
+            raise ImportError(
+                f"CacheHandler - load_cached_function - Could not load spec from {cache_file_path}")
 
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -262,11 +268,11 @@ class ConditionParser:
     - dict: {} | Json-like dict
     - JSONPath: $.term # JSONPath string
     - term: JSONPath | literal string | literal number | list | dict | true | false | null.
-    - op: Comparison operators (gt, lt, eq, neq, gte, lte, contains, starts_with, ends_with).
-    - bool_op: Boolean operators (and, or).
+    - op: gt | lt | eq | neq | gte | lte | contains | starts_with | ends_with.
+    - bool_op: and | or.
     - comparison: term op term
     - condition: comparison | condition bool_op condition | not condition | exist JSONPath | (condition)
-    - sttm: [when condition] then [sttm | term else sttm | term]
+    - sttm: literal string | when condition then [sttm | term | else term]
     """
 
     def __init__(self, cache_handler: 'CacheHandler') -> None:
@@ -285,6 +291,7 @@ class ConditionParser:
         # Generate hash for cache validation
         self.cache.generate_hash()
         cache_file_path = self.cache.get_path_from_cache()
+
         if cache_file_path:
             return cache_file_path
 
@@ -296,12 +303,11 @@ class ConditionParser:
             constants += Utils.extract_constants(cond)
 
         # Build JSONPath to parameter mapping
-
         function_signature = self._build_function_signature(paramns)
         function_constants = self._constants_builder(constants)
 
         proto_function = f"{function_signature}{function_constants}"
-        function_builder = self._if_then_builder(proto_function)
+        function_builder = self._if_then_else_builder(proto_function)
         jsonpath_params = Utils.build_jsonpath_params_mapping(paramns)
 
         cache_file_path = self.cache._save_to_cache(
@@ -309,7 +315,7 @@ class ConditionParser:
             jsonpath_params
         )
 
-        _i(f"Generated function - cached at: {cache_file_path}")
+        _i(f"ConditionParser - parser - Generated function - cached at: {cache_file_path}")
 
         return cache_file_path
 
@@ -338,27 +344,25 @@ class ConditionParser:
 
         return '\n' + ''.join(const_lines) + '\n'
 
-    def _if_then_builder(self, function_builder) -> str:
+    def _if_then_else_builder(self, function_builder) -> str:
         """Build if-then statements for all conditions"""
 
         conditions = self.conditions
         condition_size = len(conditions) - 1
         for i, condition in enumerate(conditions):
 
-            # Check if this is the last condition and doesn't have 'when' (default case)
-            if i == condition_size and 'when' not in condition:
-                # This is the default return
-                default_value = condition if condition.startswith(
-                    '#') else f"'{condition}'"
+            if i == condition_size:
+                then_count = condition.count('then ')
 
-                function_builder += "\n    # default\n"\
-                    f"    return {default_value.replace('#', '').replace('-', '_')}\n"
-                break
+                if then_count == 1:
+                    if not ' else ' in condition:
+                        raise Exception(
+                            f'Malformation of the last condition: {condition}')
 
-            if 'when' not in condition:
-                continue
+                if then_count > 1:
+                    raise Exception(
+                        f'The final condition has nested conditions, without a default value: {condition}')
 
-            # Process the statement (which may be nested)
             function_builder += "\n" + self._process_statement(condition, 1)
 
         return function_builder
@@ -369,58 +373,8 @@ class ConditionParser:
 
         # If it's just a constant, return it
         if statement.startswith('#'):
-            return f"{indent}return {statement.replace('#', '').replace('-', '_')}\n"
+            return f"{indent}return {statement[1:].replace('-', '_')}\n"
 
-        # If it doesn't contain 'when', it's a literal return
-        if 'when' not in statement:
-            return f"{indent}return {statement.replace('#', '').replace('-', '_')}\n"
-
-        # Handle else clause - need to be careful about nested else
-        if ' else ' in statement:
-            # Find the position of else that corresponds to the main statement
-            # We need to find the 'else' that's not inside a nested when-then
-
-            # First, extract the main when-then part
-            main_when_match = re.search(
-                r'when\s+(.*?)\s+then\s+(.*?)(?:\s+else\s+(.*))?$', statement, re.DOTALL)
-            if main_when_match:
-                condition = main_when_match.group(1).strip()
-
-                then_part = main_when_match.group(2).strip()
-
-                else_part = main_when_match.group(
-                    3).strip() if main_when_match.group(3) else ""
-
-                # Check if the then_part contains 'else' - if so, it's part of then_part
-                if ' else ' in then_part and else_part == "":
-                    # The else is inside the then_part, not at the main level
-                    condition = self._op_substitution(condition)
-                    result = f"{indent}if {condition}:\n"
-                    result += self._process_statement(
-                        then_part, indent_level + 1)
-                    return result
-
-                # Main-level else
-                condition = self._op_substitution(condition)
-                result = f"{indent}if {condition}:\n"
-
-                if self._is_nested_statement(then_part):
-                    result += self._process_statement(
-                        then_part, indent_level + 1)
-                else:
-                    result += f"{indent}    return {then_part.replace('#', '').replace('-', '_')}\n"
-
-                result += f"{indent}else:\n"
-
-                if self._is_nested_statement(else_part):
-                    result += self._process_statement(
-                        else_part, indent_level + 1)
-                else:
-                    result += f"{indent}    return {else_part.replace('#', '').replace('-', '_')}\n"
-
-                return result
-
-        # Regular when-then statement
         condition, then_part = self._extract_nested_statement_parts(statement)
         condition = self._op_substitution(condition)
 
@@ -431,12 +385,23 @@ class ConditionParser:
             subst = f"exist {js_path}"
             condition = condition.replace(subst, term)
 
+        condition = Utils.remove_single_word_parentheses(condition)
+
         result = f"{indent}if {condition}:\n"
 
         if self._is_nested_statement(then_part):
             result += self._process_statement(then_part, indent_level + 1)
+
+        elif ' else ' in then_part:
+            _then, _else = then_part.split(' else ')
+
+            _then = _then[1:].replace('-', '_') if _then.startswith('#') else _then  # nopep8
+            _else = _else[1:].replace('-', '_') if _else.startswith('#') else _else  # nopep8
+
+            result += f"{indent}    return {_then}\n{indent}return {_else}\n"
+
         else:
-            result += f"{indent}    return {then_part.replace('#', '').replace('-', '_')}\n"
+            result += f"{indent}    return {then_part[1:].replace('-', '_')}\n"
 
         return result
 
@@ -489,13 +454,13 @@ class ConditionParser:
     def _convert_jsonpath_to_params(self, condition) -> str:
         """Convert JSONPath expressions ($.) to parameter names"""
 
-        # Find all JSONPath expressions
-        jsonpath_pattern = r'\$\.\S*'  # r'\$\.[a-zA-Z_][a-zA-Z0-9_.-]*'
+        # Find all JSONPath expressions - match $.word but stop at non-word characters
+        jsonpath_pattern = r'\$\.([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)'
 
         def replace_jsonpath(match):
-            jsonpath = match.group(0)
-            # Convert $.user.name -> _user_name
-            param_name = re.sub(r'[^a-zA-Z0-9_]', '_', jsonpath[1:])
+            jsonpath_content = match.group(1)  # Get the part after $.
+            # Convert $.user.name -> _user_name (replace dots with underscores)
+            param_name = '_' + jsonpath_content.replace('.', '_')
             return param_name
 
         condition = re.sub(jsonpath_pattern, replace_jsonpath, condition)
@@ -508,7 +473,7 @@ class ConditionParser:
 
     def _is_nested_statement(self, then_part: str) -> bool:
         """Check if the then part contains another when-then statement"""
-        return 'when' in then_part and 'then' in then_part
+        return 'when' in then_part
 
     def _op_substitution(self, condition) -> str:
         """Convert custom operators to Python operators"""

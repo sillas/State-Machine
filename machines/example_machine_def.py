@@ -35,7 +35,7 @@ def main():
     print("Serial...")
     use_example()
 
-    sleep(3)
+    # sleep(3)
 
-    print("\nParallel...")
-    use_example_parallel()
+    # print("\nParallel...")
+    # use_example_parallel()

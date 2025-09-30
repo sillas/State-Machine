@@ -1,30 +1,25 @@
-from core.handlers.choice2_handler import Choice2
-from test_cache.logger import _i
+from core.handlers.choice_handler import Choice
+from logging_config import _i
 
 
 def teste():
 
     statements = [
-        "when $.user.age lt 24 then #novo",
-        "when $.user.age gt 50 then #velho",
-        "#adulto"
+        "when exist $.value and $.value lt 55 then #center-st",
+        "#outer-st"
     ]
 
     states = {
-        "novo": {"name": "novo"},
-        "velho": {"name": "velho"},
-        "adulto": {"name": "adulto"}
+        "center-st": {"name": "center_state"},
+        "in-or-out": {"name": "in_or_out"},
+        "outer-st": {"name": "outer_state"}
     }
 
-    ch = Choice2('choice_teste', statements, states)
+    ch = Choice('choice_teste', statements, states)
 
-    test_data = {"user": {"age": 60, "status": "active"}}
+    test_data = {"value": 50}
     result = ch.handler(test_data, {})
-    _i(f"RESULT 1: {result}")
-
-    test_data = {"user": {"age": 10, "status": "active"}}
-    result = ch.handler(test_data, {})
-    _i(f"RESULT 2: {result}")
+    _i(f"RESULT 1: {ch.next_state} -> {result}")
 
 
 if __name__ == "__main__":

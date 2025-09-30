@@ -78,7 +78,8 @@ class StateConfigurationProcessor:
                     conditions_list[i] = conditions_list[i].replace(
                         word, f"'{state_name}'")
 
-            self.execution_blocks.append(Choice(choice_name, conditions_list))
+            self.execution_blocks.append(
+                Choice(choice_name, conditions_list, self.state_definitions))
             _i(f"Choice state processed: {choice_name}")
         except Exception as e:
             _e(f"Error processing choice state: {e}")
@@ -133,9 +134,9 @@ class StateMachineParser:
             self.machine = data[data['entry']]
             self.data = data
             _i(
-                f"Loaded machine definitions from {machine_definitions_file}")
+                f"StateMachineParser - __init__ - Loaded machine definitions from {machine_definitions_file}")
         except Exception as e:
-            _e(f"Error initializing StateMachineParser: {e}")
+            _e(f"StateMachineParser - __init__ - Error initializing StateMachineParser: {e}")
             raise
 
     def parse(self) -> StateMachine:
@@ -143,7 +144,7 @@ class StateMachineParser:
         try:
             return self.parse_machine(self.machine)
         except Exception as e:
-            _e(f"Error parsing machine: {e}")
+            _e(f"StateMachineParser - parse - Error parsing machine: {e}")
             raise
 
     def parse_machine(self, machine_config: dict[str, Any]) -> StateMachine:
@@ -172,29 +173,30 @@ class StateMachineParser:
                         method(self.parse_machine, self.data)
                 except Exception as e:
                     _e(
-                        f"Error processing state '{current_state}': {e}")
+                        f"StateMachineParser - parse_machine - Error processing state '{current_state}': {e}")
                     raise
 
             _i(f"State machine '{name}' parsed successfully.")
             return StateMachine(name, state_processor.execution_blocks)
         except Exception as e:
-            _e(f"Error parsing machine config: {e}")
+            _e(f"StateMachineParser - parse_machine - Error parsing machine config: {e}")
             raise
 
     def _load_data(self, machine_definitions_file: str):
         """Load and return data from the given machine definitions YAML file."""
+        err_msg = "StateMachineParser - _load_data - "
         try:
             with open(machine_definitions_file, 'r') as file:
                 return yaml.safe_load(file)
         except FileNotFoundError:
-            _e(f"Error: {machine_definitions_file} not found.")
+            _e(f"{err_msg}Error: {machine_definitions_file} not found.")
             raise
         except yaml.YAMLError as e:
-            _e(f"Error parsing YAML: {e}")
+            _e(f"{err_msg}Error parsing YAML: {e}")
             raise
         except KeyError as e:
-            _e(f"Key error! {str(e)}")
+            _e(f"{err_msg}Key error! {str(e)}")
             raise
         except Exception as e:
-            _e(f"Error: {str(e)}")
+            _e(f"{err_msg}Error: {str(e)}")
             raise
