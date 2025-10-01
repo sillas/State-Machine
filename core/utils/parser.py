@@ -489,7 +489,7 @@ class ConditionParser:
 
         def replace_jsonpath(match):
             jsonpath_content = match.group(1)  # Get the part after $.
-            # Convert $.user.name -> _user_name (replace dots with underscores)
+            # Convert user.name -> _user_name (replace dots with underscores)
             param_name = '_' + jsonpath_content.replace('.', '_')
             return param_name
 
