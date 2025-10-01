@@ -1,26 +1,26 @@
-from core.handlers.choice_handler import Choice
+import re
 from logging_config import _i
 
 
-def teste():
+def t():
+    condition = "[5, 10, 20] contains $.age"
 
-    statements = [
-        "when exist $.value and $.value lt 55 then #center-st",
-        "#outer-st"
-    ]
+    # Padrão que captura qualquer coisa antes e depois de 'contains'
+    # Captura: listas [], dicts {}, strings com aspas, json paths $., números, etc.
+    pattern = r'(.+?)\s+contains\s+(.+)'
 
-    states = {
-        "center-st": {"name": "center_state"},
-        "in-or-out": {"name": "in_or_out"},
-        "outer-st": {"name": "outer_state"}
-    }
+    match = re.match(pattern, condition.strip())
+    if match:
+        term_1 = match.group(1).strip()
+        term_2 = match.group(2).strip()
+        # Troca os termos e substitui 'contains' por 'in'
+        text = f"{term_2} in {term_1}"
+    else:
+        # Se não reconhecer o padrão, retorna a mesma string
+        text = condition
 
-    ch = Choice('choice_teste', statements, states)
-
-    test_data = {"value": 50}
-    result = ch.handler(test_data, {})
-    _i(f"RESULT 1: {ch.next_state} -> {result}")
+    _i(text)
 
 
 if __name__ == "__main__":
-    teste()
+    t()

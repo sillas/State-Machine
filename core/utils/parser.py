@@ -509,16 +509,20 @@ class ConditionParser:
         """Convert custom operators to Python operators"""
 
         # First convert JSONPath expressions to parameter names
-        condition = self._convert_jsonpath_to_params(condition)
+        text = self._convert_jsonpath_to_params(condition)
 
         # Handle complex operators first (contains, starts_with, ends_with)
         # Pattern to match: variable/expression operator literal/expression
         # More robust pattern that handles variables, strings, and parentheses
 
         # Handle contains: X contains Y -> Y in X
-        text = re.sub(
-            r'(\w+)\s+contains\s+(\'[^\']*\')', r'\2 in \1', condition)
-        text = re.sub(r'(\w+)\s+contains\s+(\w+)', r'\2 in \1', text)
+        pattern = r'(.+?)\s+contains\s+(.+)'
+        match = re.match(pattern, text.strip())
+        if match:
+            term_1 = match.group(1).strip()
+            term_2 = match.group(2).strip()
+            # Troca os termos e substitui 'contains' por 'in'
+            text = f"{term_2} in {term_1}"
 
         # Handle starts_with: X starts_with Y -> X.startswith(Y)
         text = re.sub(
