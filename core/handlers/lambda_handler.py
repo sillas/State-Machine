@@ -68,7 +68,7 @@ class Lambda(State):
         """
 
         lambda_name = self.name
-        full_path = f"{lambda_path}/{lambda_name}/main.py"
+        full_path = Path(lambda_path) / lambda_name / "main.py"
         lambda_file_path = Path(full_path)
 
         if not lambda_file_path.exists():

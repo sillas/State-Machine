@@ -6,3 +6,8 @@ class StateNotFoundError(Exception):
 class StateMachineExecutionError(Exception):
     """Raised for general errors during state machine execution."""
     pass
+
+
+class ChoiceInitializationError(Exception):
+    """Raise for failed Choice initialization"""
+    pass

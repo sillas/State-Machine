@@ -1,6 +1,7 @@
 from typing import Any
 from time import time
 
+from core.exceptions import ChoiceInitializationError
 from core.utils.state_base import State, StateType
 from core.utils.parser import CacheHandler
 
@@ -52,7 +53,8 @@ class Choice(State):
                 count += 1
 
             except Exception as e:
-                raise Exception(f"Choice - __init__ - {str(e)}")
+                raise ChoiceInitializationError(
+                    f"Failed to initialize choice: {str(e)}") from e
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
 

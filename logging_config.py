@@ -8,13 +8,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def _i(message: Any) -> None:
+def info(message: Any) -> None:
     logger.info(message)
 
 
-def _e(error_message: Any) -> None:
+def error(error_message: Any) -> None:
     logger.error(error_message)
 
 
-def _w(warning_message: Any) -> None:
+def warning(warning_message: Any) -> None:
     logger.warning(warning_message)
