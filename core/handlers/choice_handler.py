@@ -16,8 +16,6 @@ class Choice(State):
 
     Attributes:
         jsonpath_wrapper (callable): Cached function for evaluating conditions.
-        _data (Any): Internal data storage.
-        _operations (list[str]): List of conditional statements.
         cache_handler (CacheHandler): Handles caching of condition functions.
 
     Args:
@@ -32,12 +30,22 @@ class Choice(State):
     jsonpath_wrapper = None
 
     def __init__(self, name: str, statements: list[str], states: dict[str, Any]) -> None:
-
-        self._data = None
-        self._operations = statements
-        self.cache_handler = CacheHandler(name, statements, states)
-
         super().__init__(name=name, next_state=None, type=StateType.CHOICE, timeout=1)
+        self._initialize_handler(name, statements, states)
+
+    def handler(self, event: Any, context: dict[str, Any]) -> Any:
+
+        context["timestamp"] = time()
+
+        if self.jsonpath_wrapper:
+            self.next_state = self.jsonpath_wrapper(event)
+            return event
+
+        raise Exception("Choice - handler - jsonpath_wrapper not loaded.")
+
+    def _initialize_handler(self, name: str, statements: list[str], states: dict[str, Any]):
+
+        self.cache_handler = CacheHandler(name, statements, states)
 
         count = 0
         while count <= 1 and self.jsonpath_wrapper is None:
@@ -55,13 +63,3 @@ class Choice(State):
             except Exception as e:
                 raise ChoiceInitializationError(
                     f"Failed to initialize choice: {str(e)}") from e
-
-    def handler(self, event: Any, context: dict[str, Any]) -> Any:
-
-        context["timestamp"] = time()
-
-        if self.jsonpath_wrapper:
-            self.next_state = self.jsonpath_wrapper(event)
-            return event
-
-        raise Exception("Choice - handler - jsonpath_wrapper not loaded.")

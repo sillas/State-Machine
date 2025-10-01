@@ -11,11 +11,6 @@ class StateType(Enum):
 
 class State:
 
-    name: str
-    type: str
-    next_state: str | None
-    timeout: int  # seconds
-
     def __init__(self, name: str, next_state: str | None, type: StateType, timeout: Optional[int] = None) -> None:
         self.name = name
         self.type = type.value
