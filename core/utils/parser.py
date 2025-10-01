@@ -251,7 +251,7 @@ class CacheHandler:
         """
         metadata = self.is_cache_valid()
         if metadata is None:
-            raise ValueError(
+            raise FileNotFoundError(
                 f"CacheHandler - load_cached_function - No metadata found for choice: {self.name}")
 
         cache_file_path = metadata['cache_file']
