@@ -397,7 +397,7 @@ class ConditionParser:
 
         return function_builder
 
-    def check_constants_and_literals(self, indent, statement) -> str | None:
+    def add_constants_or_literals(self, indent, statement) -> str | None:
 
         if statement.startswith('#'):
             return f"{indent}return {statement[1:].replace('-', '_')}\n"
@@ -413,7 +413,7 @@ class ConditionParser:
         indent = "    " * indent_level
 
         # If it's just a constant, return it
-        result = self.check_constants_and_literals(indent, statement)
+        result = self.add_constants_or_literals(indent, statement)
         if result:
             return result
 
@@ -443,7 +443,7 @@ class ConditionParser:
             result += f"{indent}    return {_then}\n{indent}return {_else}\n"
 
         else:
-            ctes_ltr = self.check_constants_and_literals(indent, then_part)
+            ctes_ltr = self.add_constants_or_literals(indent, then_part)
             if ctes_ltr:
                 result += f"    {ctes_ltr}"
 

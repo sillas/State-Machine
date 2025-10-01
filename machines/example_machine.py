@@ -35,9 +35,9 @@ def example_machine():
     work_dir = "lambdas/example"
 
     states = {
-        'center_state': {'name: center_state'},
-        'outer_state': {'name: outer_state'},
-        'in_or_out': {'name: in_or_out'},
+        'center_state': {'name': 'center_state'},
+        'outer_state': {'name': 'outer_state'},
+        'in_or_out': {'name': 'in_or_out'},
     }
 
     if__in_or_out__statements = [

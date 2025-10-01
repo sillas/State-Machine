@@ -147,7 +147,7 @@ class TestValidConditions(unittest.TestCase):
         """Testa listas literais simples."""
 
         conditions = [
-            "when [5, 10, 20] contains $.age then #match",
+            "when [5, 10, 20] contains $.age and $.age eq 10 then #match",
             "when $.toos eq [] then #no-match",
             "#default"
         ]

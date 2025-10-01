@@ -16,5 +16,5 @@ def _e(error_message: Any) -> None:
     logger.error(error_message)
 
 
-def _w(warnning_message: Any) -> None:
-    logger.warning(warnning_message)
+def _w(warning_message: Any) -> None:
+    logger.warning(warning_message)
