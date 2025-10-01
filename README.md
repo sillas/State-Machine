@@ -33,7 +33,7 @@ machine_tree = [
     Lambda("process_data", "make_decision", "lambdas/example"),
     Choice("make_decision", [
         "when $.value gt 50 then 'high_value' else 'low_value'"
-    ]),
+    ], states),
     Lambda("high_value", None, "lambdas/example"),
     Lambda("low_value", None, "lambdas/example")
 ]
