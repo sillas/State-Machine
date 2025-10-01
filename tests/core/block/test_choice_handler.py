@@ -45,7 +45,7 @@ class TestValidConditions(unittest.TestCase):
             input_data = test['input']
             output_data = choice.handler(input_data, {})
 
-            self.assertTrue(choice.next_state == self.states[test['state']]['name'])  # nopep8
+            self.assertEqual(choice.next_state, self.states[test['state']]['name'])  # nopep8
             self.assertDictEqual(input_data, output_data)
 
             choice.cache_handler.clear_all_cache()
@@ -73,7 +73,7 @@ class TestValidConditions(unittest.TestCase):
         choice_2.cache_handler.clear_all_cache()
 
     def test_simple_string_literals(self):
-        """Testa strings literais simples com aspas simples."""
+        """Testa strings literais."""
 
         conditions = [
             "when $.name eq 'João Silva' then #match",
@@ -92,7 +92,7 @@ class TestValidConditions(unittest.TestCase):
         self.act_and_assert("test_simple_string", conditions, test_list)
 
     def test_simple_number_literals(self):
-        """Testa números literais simples com aspas simples."""
+        """Testa números literais."""
 
         conditions = [
             "when $.age eq 10 then #match",
@@ -109,7 +109,7 @@ class TestValidConditions(unittest.TestCase):
         self.act_and_assert("test_simple_number", conditions, test_list)
 
     def test_simple_list_literals(self):
-        """Testa listas literais simples com aspas simples."""
+        """Testa listas literais simples."""
 
         conditions = [
             "when [5, 10, 20] contains $.age then #match",
@@ -130,7 +130,7 @@ class TestValidConditions(unittest.TestCase):
         )
 
     def test_simple_dict_literals(self):
-        """Testa listas literais simples com aspas simples."""
+        """Testa dicionários literais."""
 
         conditions = [
             "when {\"name\": \"pedro\"} contains $.name then #match",
@@ -152,7 +152,52 @@ class TestValidConditions(unittest.TestCase):
             test_list
         )
 
+    def test_complex_conditions(self):
+        """Testa condições mais complexas."""
+
+        conditions = [
+            "when $.age gt 10 then when $.age gt 20 then when $.age gt 30 then #match else #no-match",
+            "#default"
+        ]
+
+        test_list = [
+            {'input': {'age': 9}, 'state': 'default'},
+            {'input': {'age': 10}, 'state': 'default'},
+            {'input': {'age': 20}, 'state': 'default'},
+            {'input': {'age': 30}, 'state': 'no-match'},
+            {'input': {'age': 40}, 'state': 'match'},
+        ]
+
+        self.act_and_assert("test_complex_conditions", conditions, test_list)
+
+    def test_start_with_condition(self):
+        """Testa strings literais simples com aspas simples."""
+
+        conditions = [
+            "when $.name starts_with 'S' then #match else #no-match"
+        ]
+
+        test_list = [
+            {'input': {'name': 'Salomão'}, 'state': 'match'},
+            {'input': {'name': 'Marcos'}, 'state': 'no-match'},
+        ]
+
+        self.act_and_assert("test_start_with_condition", conditions, test_list)
+
+    def test_ends_with_condition(self):
+        """Testa strings literais simples com aspas simples."""
+
+        conditions = [
+            "when $.name ends_with 's' then #match else #no-match"
+        ]
+
+        test_list = [
+            {'input': {'name': 'Salomão'}, 'state': 'no-match'},
+            {'input': {'name': 'Marcos'}, 'state': 'match'},
+        ]
+
+        self.act_and_assert("test_ends_with_condition", conditions, test_list)
+
 
 if __name__ == "__main__":
-    # Configuração para mostrar mais detalhes nos testes
     unittest.main(verbosity=2, buffer=True)
