@@ -397,13 +397,25 @@ class ConditionParser:
 
         return function_builder
 
+    def check_constants_and_literals(self, indent, statement) -> str | None:
+
+        if statement.startswith('#'):
+            return f"{indent}return {statement[1:].replace('-', '_')}\n"
+
+        if statement[0] == "'" and statement[-1] == "'":
+            if not "'" in statement[1:-1]:
+                return f"{indent}return {statement}\n"
+
+        return None
+
     def _process_statement(self, statement: str, indent_level: int = 1) -> str:
         """Process a single statement (could be nested) and return Python code"""
         indent = "    " * indent_level
 
         # If it's just a constant, return it
-        if statement.startswith('#'):
-            return f"{indent}return {statement[1:].replace('-', '_')}\n"
+        result = self.check_constants_and_literals(indent, statement)
+        if result:
+            return result
 
         condition, then_part = self._extract_nested_statement_parts(statement)
         condition = self._op_substitution(condition)
@@ -431,7 +443,9 @@ class ConditionParser:
             result += f"{indent}    return {_then}\n{indent}return {_else}\n"
 
         else:
-            result += f"{indent}    return {then_part[1:].replace('-', '_')}\n"
+            ctes_ltr = self.check_constants_and_literals(indent, then_part)
+            if ctes_ltr:
+                result += f"    {ctes_ltr}"
 
         return result
 

@@ -45,7 +45,9 @@ class TestValidConditions(unittest.TestCase):
             input_data = test['input']
             output_data = choice.handler(input_data, {})
 
-            self.assertEqual(choice.next_state, self.states[test['state']]['name'])  # nopep8
+            state = self.states[
+                test['state']]['name'] if "state" in test else test['literal']
+            self.assertEqual(choice.next_state, state)  # nopep8
             self.assertDictEqual(input_data, output_data)
 
             choice.cache_handler.clear_all_cache()
@@ -70,7 +72,7 @@ class TestValidConditions(unittest.TestCase):
         file_path_2 = choice_2.cache_handler.get_path_from_cache()
 
         self.assertNotEqual(file_path_1, file_path_2)
-        choice_2.cache_handler.clear_all_cache()
+        # choice_2.cache_handler.clear_all_cache()
 
     def test_simple_string_literals(self):
         """Testa strings literais."""
@@ -90,6 +92,39 @@ class TestValidConditions(unittest.TestCase):
         ]
 
         self.act_and_assert("test_simple_string", conditions, test_list)
+
+    def test_return_default_literal_string(self):
+        """Testa strings literais."""
+
+        conditions = [
+            "when $.name eq 'João Silva' then 'string_match'",
+            "'default_state'"
+        ]
+
+        test_list = [
+            {'input': {'name': 'João Silva'}, 'literal': 'string_match'},
+            {'input': {'name': 'Silva'}, 'literal': 'default_state'},
+        ]
+
+        self.act_and_assert(
+            "test_return_literal_string",
+            conditions, test_list)
+
+    def test_return_else_literal_string(self):
+        """Testa strings literais."""
+
+        conditions = [
+            "when $.name eq 'João Silva' then 'string_match' else 'default_state'"
+        ]
+
+        test_list = [
+            {'input': {'name': 'João Silva'}, 'literal': 'string_match'},
+            {'input': {'name': 'Silva'}, 'literal': 'default_state'},
+        ]
+
+        self.act_and_assert(
+            "test_return_else_literal_string",
+            conditions, test_list)
 
     def test_simple_number_literals(self):
         """Testa números literais."""
