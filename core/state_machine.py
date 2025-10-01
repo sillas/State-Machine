@@ -1,11 +1,11 @@
-from typing import Any, Optional, Sequence
-import concurrent.futures
 import time as t
-import logging
+import concurrent.futures
+from typing import Any, Optional, Sequence
 import uuid
 
 from core.exceptions import StateMachineExecutionError, StateNotFoundError
 from core.utils.state_base import State
+from logging_config import error, info, warning
 
 
 class StateMachine:
@@ -55,7 +55,7 @@ class StateMachine:
             self.timeout = timeout
 
             if states_timeout_sum > self.timeout:
-                logging.warning(
+                warning(
                     f"Sum of all states timeouts ({states_timeout_sum}s) exceeds machine timeout ({self.timeout}s). Changing machine timeout to {states_timeout_sum + 1}s."
                 )
                 self.timeout = states_timeout_sum + 1
@@ -81,25 +81,19 @@ class StateMachine:
 
         while True:
             if t.time() - start_time > timeout:
-                logging.error(
+                error(
                     f"Execution {execution_id} timed out after {timeout} seconds. Returning None."
                 )
                 raise TimeoutError(
                     f"Execution {execution_id} timed out after {timeout} seconds.")
 
             if not step_lambda:
-                logging.error(
+                error(
                     f"Execution {execution_id} encountered an invalid state: {next_state}."
                 )
                 raise StateNotFoundError(f"State {next_state} does not exist!")
 
-            logging.info(
-                {
-                    "message": f"Entering state {next_state}",
-                    "input": event,
-                    **context
-                }
-            )
+            info(f">>> Entering state <{next_state}>")
 
             try:
 
@@ -114,7 +108,7 @@ class StateMachine:
                         event = future.result(timeout=state_timeout)
                     except concurrent.futures.TimeoutError:
                         future.cancel()
-                        logging.error(
+                        error(
                             {
                                 "message": f"State {context['state_name']} timed out.",
                                 "execution_id": execution_id,
@@ -129,32 +123,22 @@ class StateMachine:
                 # ----------------------------------------
                 step_duration = t.time() - step_start_time
 
-                logging.info(
-                    {
-                        "message": f"Exiting state {context['state_name']}",
-                        "execution_id": execution_id,
-                        "state_name": context["state_name"],
-                        "output": event,
-                        "duration": step_duration,
-                    }
-                )
+                info(
+                    f"<<< Exiting state [{context['state_name']} ({step_duration} s)]")
+                info(event)
 
                 if next_state is None:
-                    logging.info(
-                        {
-                            "message": "Execution completed successfully.",
-                            "execution_id": execution_id,
-                            "final_output": event,
-                            "total_duration": t.time() - start_time
-                        }
-                    )
+                    total_duration = t.time() - start_time
+                    info(
+                        f"\n\n## Execution completed successfully in {total_duration} s.\n")
+                    info(event)
                     return event
 
                 context["state_name"] = next_state
                 step_lambda = machine_tree.get(next_state)  # Next
 
             except Exception as e:
-                logging.error(
+                error(
                     {
                         "message": f"Error occurred in state {next_state}",
                         "execution_id": execution_id,

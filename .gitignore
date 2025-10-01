@@ -5,6 +5,7 @@
 __pycache__/
 */__pycache__/
 **/__pycache__/
+**/conditions_cache/
 *.py[cod]
 *$py.class
 

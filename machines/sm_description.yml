@@ -1,0 +1,27 @@
+entry: example-machine
+
+example-machine:
+  name: 'example machine'
+  lambda_dir: lambdas/example
+
+  tree:
+    center-state: in-or-out
+    in-or-out: $ioo-statements
+    outer-state: null
+  
+  states:
+    center-state:
+      name: center_state
+      type: lambda
+    
+    in-or-out:
+      name: in_or_out
+      type: choice
+    
+    outer-state:
+      name: outer_state
+      type: lambda
+  
+  vars:
+    $ioo-statements:
+      - "when exist $.value and ($.value gt 10) and ($.value lt 55) then #center-state else #outer-state"

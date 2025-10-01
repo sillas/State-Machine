@@ -17,30 +17,17 @@ class Lambda(State):
 
     Attributes:
         _handler (callable | None): Cached handler function for the Lambda.
-
-    Methods:
-        handler(event: Any, context: dict[str, Any]) -> Any:
-            Executes the Lambda handler.
-            Updates the context with a timestamp.
-
-        _load_lambda() -> callable:
-            Loads the Lambda handler from the corresponding module file.
-            Caches the handler for subsequent invocations.
-            Raises ModuleNotFoundError if the Lambda module is not found.
-            Raises ImportError if the module cannot be loaded.
     """
 
-    _handler = None
-
-    def __init__(self, name: str, next_state: str | None, timeout: Optional[int] = None) -> None:
+    def __init__(self, name: str, next_state: str | None, lambda_path: str, timeout: Optional[int] = None) -> None:
         super().__init__(
             name=name,
             next_state=next_state,
             type=StateType.LAMBDA,
             timeout=timeout
         )
-
-        self._load_lambda()  # pre-load the lambda handler
+        self._handler = None
+        self._load_lambda(lambda_path)
 
     def handler(self, event: Any, context: dict[str, Any]) -> Any:
         """
@@ -52,24 +39,18 @@ class Lambda(State):
 
         Returns:
             Any: The result of the handler execution.
-
-        Side Effects:
-            Updates the 'timestamp' key in the context dictionary with the current time.
-
-        Behavior:
-            - If a custom handler (`self._handler`) is set, it delegates execution to it.
-            - Otherwise, it loads the lambda handler and executes it.
         """
 
         context["timestamp"] = time()
         _handler = self._handler
 
         if _handler is None:
-            _handler = self._load_lambda()
+            raise FileNotFoundError(
+                f"Lambda - handler - {self.name} not found!")
 
         return _handler(event, context)
 
-    def _load_lambda(self):
+    def _load_lambda(self, lambda_path: str) -> None:
         """
         Loads a lambda handler module dynamically based on the instance's name attribute.
 
@@ -87,20 +68,22 @@ class Lambda(State):
         """
 
         lambda_name = self.name
-        lambda_path = Path(f"lambdas/{lambda_name}/main.py")
+        full_path = Path(lambda_path) / lambda_name / "main.py"
+        lambda_file_path = Path(full_path)
 
-        if not lambda_path.exists():
-            raise ModuleNotFoundError(f"Lambda {lambda_name} não encontrado")
+        if not lambda_file_path.exists():
+            raise ModuleNotFoundError(
+                f"Lambda - _load_lambda - {full_path} não encontrado")
 
-        spec = importlib.util.spec_from_file_location(lambda_name, lambda_path)
+        spec = importlib.util.spec_from_file_location(
+            lambda_name, lambda_file_path)
 
         if spec is None or spec.loader is None:
             raise ImportError(
-                f"Não foi possível carregar o módulo para {lambda_name}")
+                f"Lambda - _load_lambda - Não foi possível carregar o módulo para {lambda_name}")
 
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
         handler = module.lambda_handler
         self._handler = handler
-        return handler

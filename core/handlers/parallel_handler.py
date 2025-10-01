@@ -5,9 +5,9 @@ from core.utils.state_base import State, StateType
 from core.state_machine import StateMachine
 
 
-class ParallelHandler(State):
+class Parallel(State):
     """
-    ParallelHandler executes multiple StateMachine workflows in parallel, managing their timeouts and aggregating results.
+    Parallel executes multiple StateMachine workflows in parallel, managing their timeouts and aggregating results.
 
     Args:
         name (str): The name of the parallel handler.
@@ -21,7 +21,6 @@ class ParallelHandler(State):
         handler(event: Any, context: dict[str, Any]) -> Any:
             Runs all workflows in parallel, waits for completion or timeout, and returns a dictionary mapping workflow names to their results.
     """
-    _workflows: list[StateMachine]
 
     def __init__(self, name: str, next_state: Optional[str], workflows: list[StateMachine]):
 

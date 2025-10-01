@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from core.blocks.lambda_handler import Lambda
+from core.handlers.lambda_handler import Lambda
 from core.utils.state_base import StateType
 
 
@@ -22,6 +22,7 @@ class TestLambda(unittest.TestCase):
         self.lambda_instance = Lambda(
             name="test_lambda",
             next_state="next_state",
+            lambda_path='lambda_path',
             timeout=10
         )
 
@@ -41,7 +42,8 @@ class TestLambda(unittest.TestCase):
         with patch.object(Lambda, '_load_lambda'):
             lambda_default_timeout = Lambda(
                 name="default_timeout",
-                next_state="next_state"
+                next_state="next_state",
+                lambda_path='lambda_path',
             )
             # Valor padrão definido na classe base
             self.assertIsNotNone(lambda_default_timeout.timeout)
@@ -88,30 +90,6 @@ class TestLambda(unittest.TestCase):
 
         # Verificar que o resultado é o esperado
         self.assertEqual(result, {"result": "cached"})
-
-    def test_handler_loads_if_not_cached(self):
-        """Test that the handler loads if not already cached."""
-        # Resetar o mock para este teste
-        self.mock_load_lambda.reset_mock()
-        mock_new_handler = MagicMock(return_value={"result": "new"})
-        self.mock_load_lambda.return_value = mock_new_handler
-
-        # Definir o handler como None para forçar o carregamento
-        self.lambda_instance._handler = None
-
-        # Chamar o handler
-        event_data = {"input": "test"}
-        context_data = {"context": "test"}
-        result = self.lambda_instance.handler(event_data, context_data)
-
-        # Verificar que o load_lambda foi chamado
-        self.mock_load_lambda.assert_called_once()
-
-        # Verificar que o novo handler foi chamado corretamente
-        mock_new_handler.assert_called_once_with(event_data, context_data)
-
-        # Verificar que o resultado é o esperado
-        self.assertEqual(result, {"result": "new"})
 
     def test_load_lambda_with_module_errors(self):
         """Test that _load_lambda handles module errors appropriately."""
