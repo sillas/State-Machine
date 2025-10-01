@@ -1,6 +1,6 @@
-from typing import Any, Optional, Sequence
-import concurrent.futures
 import time as t
+import concurrent.futures
+from typing import Any, Optional, Sequence
 import uuid
 
 from core.exceptions import StateMachineExecutionError, StateNotFoundError
@@ -93,18 +93,11 @@ class StateMachine:
                 )
                 raise StateNotFoundError(f"State {next_state} does not exist!")
 
-            info(f"\n-------\nEntering state {next_state} -> {event}")
-            # info(
-            #     {
-            #         "message": f"Entering state {next_state}",
-            #         "input": event,
-            #         **context
-            #     }
-            # )
+            info(f">>> Entering state <{next_state}>")
 
             try:
 
-                # step_start_time = t.time()
+                step_start_time = t.time()
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     # ----------------------------------------------ACT
@@ -128,30 +121,17 @@ class StateMachine:
 
                 next_state = step_lambda.next_state
                 # ----------------------------------------
-                # step_duration = t.time() - step_start_time
+                step_duration = t.time() - step_start_time
 
-                info(f"Exiting state {context['state_name']} -> {event}")
-                # info(
-                #     {
-                #         "message": f"Exiting state {context['state_name']}",
-                #         "execution_id": execution_id,
-                #         "state_name": context["state_name"],
-                #         "output": event,
-                #         "duration": step_duration,
-                #     }
-                # )
+                info(
+                    f"<<< Exiting state [{context['state_name']} ({step_duration} s)]")
+                info(event)
 
                 if next_state is None:
+                    total_duration = t.time() - start_time
                     info(
-                        "\nExecution completed successfully.\n-----------------------------")
-                    # info(
-                    #     {
-                    #         "message": "Execution completed successfully.",
-                    #         "execution_id": execution_id,
-                    #         "final_output": event,
-                    #         "total_duration": t.time() - start_time
-                    #     }
-                    # )
+                        f"\n\n## Execution completed successfully in {total_duration} s.\n")
+                    info(event)
                     return event
 
                 context["state_name"] = next_state
