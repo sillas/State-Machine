@@ -3,6 +3,7 @@ import os
 import json
 import hashlib
 import importlib.util
+from pathlib import Path
 from typing import Any
 from jsonpath_ng import parse
 from logging_config import _i, _w
@@ -63,9 +64,7 @@ class Utils:
 
         for jsonpath in paramns:
             param_name = re.sub(r'[^a-zA-Z0-9_]', '_', jsonpath[1:])
-            # Only add unique mappings
-            if param_name not in mapping:
-                mapping[param_name] = jsonpath
+            mapping[param_name] = jsonpath
 
         return mapping
 
@@ -245,6 +244,19 @@ class CacheHandler:
                     except OSError:
                         pass
 
+    def clear_all_cache(self) -> None:
+        """Remove the entire cache directory and all its contents"""
+        import shutil
+
+        cache_dir = Path(__file__).parent / 'conditions_cache'
+
+        if cache_dir.exists():
+            try:
+                shutil.rmtree(cache_dir)
+                _i(f"CacheHandler - clear_all_cache - Removed entire cache directory: {cache_dir}")
+            except OSError as e:
+                _w(f"CacheHandler - clear_all_cache - Failed to remove cache directory: {e}")
+
     def load_cached_function(self):
         """
         Load a cached function from a Python file
@@ -315,6 +327,8 @@ class ConditionParser:
         for cond in conditions:
             paramns += Utils.extract_jsonpath_variables(cond)
             constants += Utils.extract_constants(cond)
+
+        paramns = list(set(paramns))
 
         # Build JSONPath to parameter mapping
         function_signature = self._build_function_signature(paramns)
